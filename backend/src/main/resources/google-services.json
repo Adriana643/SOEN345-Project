@@ -1,0 +1,29 @@
+{
+    "project_info": {
+      "project_number": "134305855941",
+      "project_id": "soen-345",
+      "storage_bucket": "soen-345.firebasestorage.app"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:134305855941:android:f9fc6789144c606b7273ac",
+          "android_client_info": {
+            "package_name": "com.soen345.Ticket_Reservation_Application"
+          }
+        },
+        "oauth_client": [],
+        "api_key": [
+          {
+            "current_key": "AIzaSyA2uDoqtgd2Fp9w48dHUCss9aXfGM_j5vs"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": []
+          }
+        }
+      }
+    ],
+    "configuration_version": "1"
+  }
