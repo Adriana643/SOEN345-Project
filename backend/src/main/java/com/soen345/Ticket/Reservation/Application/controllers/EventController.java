@@ -17,7 +17,7 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    // replace with real JWL token check later
+    // replace with real JWT token check later
     private boolean isAdmin(String token) {
         return token != null && token.equals("admin-test-token");
     }
