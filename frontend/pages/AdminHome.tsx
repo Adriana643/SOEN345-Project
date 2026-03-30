@@ -1,0 +1,203 @@
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StatusBar, FlatList, Modal, Alert, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+import EventToggleBar from '../components/eventToggle';
+import s from './styles/AdminHomeStyles';
+import { Ionicons } from '@expo/vector-icons';
+
+type Props = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'AdminHome'>;
+};
+
+type Event = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  createdByAdmin?: boolean;
+};
+
+const SAMPLE_EVENTS: Event[] = [
+  { id: '1', title: 'ConUHacks 2026', description: 'Come code for 24h only to not submit anything.', date: 'Jan 02, 2026', location: 'Concordia University, SGW', createdByAdmin: false },
+  { id: '2', title: 'Michael Jackson Concert 2026', description: "He's alive guys", date: 'Apr 18, 2026', location: 'Bell Centre, Montreal', createdByAdmin: false },
+];
+
+const SHEET_HEIGHT = 580;
+
+const AdminHome = ({ navigation }: Props) => {
+  const [events, setEvents] = useState<Event[]>(SAMPLE_EVENTS);
+  const [search, setSearch] = useState('');
+  const [showMyEvents, setShowMyEvents] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [formErr, setFormErr] = useState('');
+
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const openModal = () => {
+    setModalVisible(true);
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closeModal = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: SHEET_HEIGHT, duration: 250, useNativeDriver: true }),
+    ]).start(() => {
+      setModalVisible(false);
+      setFormErr('');
+    });
+  };
+
+  const baseList = showMyEvents ? events.filter(e => e.createdByAdmin) : events;
+  const filtered = baseList.filter(e =>
+    e.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAdd = () => {
+    if (!newTitle.trim() || !newDesc.trim() || !newDate.trim() || !newLocation.trim()) {
+      setFormErr('All fields are required.');
+      return;
+    }
+    setEvents(prev => [
+      {
+        id: Date.now().toString(),
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        date: newDate.trim(),
+        location: newLocation.trim(),
+        createdByAdmin: true,
+      },
+      ...prev,
+    ]);
+    setNewTitle('');
+    setNewDesc('');
+    setNewDate('');
+    setNewLocation('');
+    setFormErr('');
+    closeModal();
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert('Delete Event', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => setEvents(prev => prev.filter(e => e.id !== id)) },
+    ]);
+  };
+
+  return (
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <View style={s.container}>
+
+        <View style={s.header}>
+          <Text style={s.title}>Manage Events</Text>
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
+            <Text style={s.logoutText}>Log out</Text>
+          </TouchableOpacity>
+        </View>
+
+        <EventToggleBar showMyEvents={showMyEvents} onToggle={setShowMyEvents} />
+
+        <View style={s.toolbar}>
+          <View style={s.searchWrapper}>
+            <TextInput
+              style={s.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+            />
+          </View>
+          <TouchableOpacity style={s.addBtn} onPress={openModal} activeOpacity={0.8}>
+            <Text style={s.addBtnText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.list}
+          ListEmptyComponent={
+            <Text style={s.emptyText}>
+              {showMyEvents ? "You haven't created any events yet." : 'No events found.'}
+            </Text>
+          }
+          renderItem={({ item }) => (
+            <View style={s.card}>
+              <View style={s.cardTop}>
+                <Text style={s.cardTitle}>{item.title}</Text>
+                <Text style={s.cardDate}>{item.date}</Text>
+              </View>
+              <Text style={s.cardDesc}>{item.description}</Text>
+              <View style={s.locationRow}>
+                <Ionicons name="location-outline" size={12} color="#90b8d8" />
+                <Text style={s.cardLocation}>{item.location}</Text>
+              </View>
+              <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item.id)} activeOpacity={0.8}>
+                <Text style={s.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+
+      </View>
+
+      <Modal visible={modalVisible} animationType="none" transparent>
+        <Animated.View style={[s.modalOverlay, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeModal} />
+        </Animated.View>
+
+        <Animated.View style={[s.modalCard, { transform: [{ translateY: slideAnim }] }]}>
+          <Text style={s.modalTitle}>New Event</Text>
+
+          {formErr ? (
+            <View style={s.errorBox}>
+              <Text style={s.errorBoxText}>{formErr}</Text>
+            </View>
+          ) : null}
+
+          <Text style={s.label}>Title</Text>
+          <View style={s.inputWrapper}>
+            <TextInput style={s.input} value={newTitle} onChangeText={t => { setNewTitle(t); setFormErr(''); }} />
+          </View>
+
+          <Text style={[s.label, s.labelSpacing]}>Description</Text>
+          <View style={[s.inputWrapper, s.inputMultiline]}>
+            <TextInput style={[s.input, { flex: 1 }]} value={newDesc} onChangeText={t => { setNewDesc(t); setFormErr(''); }} multiline />
+          </View>
+
+          <Text style={[s.label, s.labelSpacing]}>Date</Text>
+          <View style={s.inputWrapper}>
+            <TextInput style={s.input} value={newDate} onChangeText={t => { setNewDate(t); setFormErr(''); }} />
+          </View>
+
+          <Text style={[s.label, s.labelSpacing]}>Location</Text>
+          <View style={s.inputWrapper}>
+            <TextInput style={s.input} value={newLocation} onChangeText={t => { setNewLocation(t); setFormErr(''); }} />
+          </View>
+
+          <TouchableOpacity style={s.submitBtn} onPress={handleAdd}>
+            <Text style={s.submitText}>Create Event</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.cancelBtn} onPress={closeModal}>
+            <Text style={s.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </Modal>
+
+    </SafeAreaView>
+  );
+};
+
+export default AdminHome;
