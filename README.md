@@ -45,7 +45,7 @@ For backend, make sure your pom.xml is synced.
 
 ```
 cd \frontend\my-react-app
-npm run dev
+npm run android
 ```
 
 ### Backend
