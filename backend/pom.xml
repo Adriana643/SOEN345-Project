@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>21</java.version>
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -54,6 +54,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+    <!-- Firebase Admin SDK dependency -->
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.8.0</version>
+    </dependency> 
 		<!-- Web MVC test support (MockMvc, AutoConfigureMockMvc, etc.) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -7,9 +7,9 @@ For testing course SOEN345
 |:------:|------|:----------:|
 | Adriana Ruscitti-Titto | 40239627 | [Adriana643](https://github.com/Adriana643) |
 | Jenna Sidi Abed | 40280128 | [xJennaS](https://github.com/xJennaS) |
-| Bethany Abebe | 40280128 | [BethanyABE](https://github.com/BethanyABE) |
-| Mohammed Janoudi | 40280128 | [Mohammed-Janoudi](https://github.com/Mohammed-Janoudi) |
-| Ella Akaliza | 40280128 | [Ellakaliza](https://github.com/Ellakaliza) |
+| Bethany Abebe | 40282242 | [BethanyABE](https://github.com/BethanyABE) |
+| Mohammed Janoudi | 40252494 | [Mohammed-Janoudi](https://github.com/Mohammed-Janoudi) |
+| Ange Akaliza | 40270048 | [Ellakaliza](https://github.com/Ellakaliza) |
 
 
 # Requirements
@@ -30,7 +30,7 @@ The following tests have been done:
 - Unit tests via Jest
 Run using the following:
 ```bash
-   npm test
+npm test
 ```
 - Integration Testing
 - End-to-end via Maestro
@@ -52,9 +52,9 @@ cd <EcoPath>
 Install necessary dependencies on ``frontend``
 
 For frontend, run
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 For backend, make sure your pom.xml is synced.
 
