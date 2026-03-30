@@ -1,12 +1,12 @@
 package com.soen345.Ticket.Reservation.Application;
 
-import com.soen345.Ticket.Reservation.Application.models.Event;
-import com.soen345.Ticket.Reservation.Application.services.EventService;
+import com.soen345.Ticket.Reservation.Application.model.Event;
+import com.soen345.Ticket.Reservation.Application.service.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import com.soen345.Ticket.Reservation.Application.controllers.EventController;
+import com.soen345.Ticket.Reservation.Application.controller.EventController;
 
 import static org.junit.jupiter.api.Assertions.*;
 
