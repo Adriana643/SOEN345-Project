@@ -1,4 +1,4 @@
-package com.soen345.Ticket.Reservation.Application.models;
+package com.soen345.Ticket.Reservation.Application.model;
 
 public class Event {
     private String id;

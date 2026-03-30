@@ -1,8 +1,8 @@
-package com.soen345.Ticket.Reservation.Application.controllers;
+package com.soen345.Ticket.Reservation.Application.controller;
 
 
-import com.soen345.Ticket.Reservation.Application.models.Event;
-import com.soen345.Ticket.Reservation.Application.services.EventService;
+import com.soen345.Ticket.Reservation.Application.model.Event;
+import com.soen345.Ticket.Reservation.Application.service.EventService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    // replace with real JWT token check later
+    // replace with real token check later
     private boolean isAdmin(String token) {
         return token != null && token.equals("admin-test-token");
     }

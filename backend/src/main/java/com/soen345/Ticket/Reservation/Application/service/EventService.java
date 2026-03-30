@@ -1,6 +1,6 @@
-package com.soen345.Ticket.Reservation.Application.services;
+package com.soen345.Ticket.Reservation.Application.service;
 
-import com.soen345.Ticket.Reservation.Application.models.Event;
+import com.soen345.Ticket.Reservation.Application.model.Event;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
