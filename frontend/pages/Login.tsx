@@ -4,7 +4,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
-import { loginUser, Role } from '../services/AuthService';
+import { loginUser, Role } from '../services/authService';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -72,7 +72,7 @@ const LoginScreen = ({ navigation }: Props) => {
             </View>
 
             {/* API Error */}
-            {errors.api && (
+            {!!(errors.api) && (
               <View style={s.errorBox}>
                 <Text style={s.errorBoxText}>{errors.api}</Text>
               </View>
@@ -90,7 +90,7 @@ const LoginScreen = ({ navigation }: Props) => {
                 autoCorrect={false}
               />
             </View>
-            {errors.email && <Text style={s.fieldErr}>{errors.email}</Text>}
+            {!!(errors.email) && <Text style={s.fieldErr}>{errors.email}</Text>}
 
 
             <Text style={[s.label, { marginTop: 14 }]}>Password</Text>
@@ -106,7 +106,7 @@ const LoginScreen = ({ navigation }: Props) => {
                 <Text style={s.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
             </View>
-            {errors.password && <Text style={s.fieldErr}>{errors.password}</Text>}
+            {!!(errors.password) && <Text style={s.fieldErr}>{errors.password}</Text>}
 
             <TouchableOpacity
               style={[s.submitBtn, loading && { opacity: 0.55 }]}

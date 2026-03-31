@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 import Login from './pages/Login';
 import Register from './pages/Registration';
@@ -26,8 +27,8 @@ const App = () => {
   useEffect(() => {
     const checkToken = async () => {
       try {
-        const token = await AsyncStorage.getItem('authToken');
-        const role = await AsyncStorage.getItem('userRole');
+        const token = await SecureStore.getItemAsync('authToken');
+        const role = await SecureStore.getItemAsync('userRole');
         if (token && role) {
           setInitialRoute(role === 'admin' ? 'AdminHome' : 'UserHome');
         }
@@ -72,3 +73,4 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+registerRootComponent(App);

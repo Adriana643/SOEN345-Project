@@ -4,7 +4,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
-import { registerUser, Role } from '../services/AuthService';
+import { registerUser, Role } from '../services/authService';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Register'>;
@@ -93,7 +93,7 @@ const RegisterScreen = ({ navigation }: Props) => {
             ))}
           </View>
 
-          {errors.api && (
+          {!!(errors.api) && (
             <View style={s.errorBox}>
               <Text style={s.errorBoxText}>{errors.api}</Text>
             </View>
@@ -110,7 +110,7 @@ const RegisterScreen = ({ navigation }: Props) => {
               autoCorrect={false}
             />
           </View>
-          {errors.email && <Text style={s.fieldErr}>{errors.email}</Text>}
+          {!!(errors.email) && <Text style={s.fieldErr}>{errors.email}</Text>}
 
           <Text style={[s.label, s.labelSpacing]}>Password</Text>
           <View style={[s.inputWrapper, errors.password ? s.inputErr : null]}>
@@ -125,7 +125,7 @@ const RegisterScreen = ({ navigation }: Props) => {
               <Text style={s.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
             </TouchableOpacity>
           </View>
-          {errors.password && <Text style={s.fieldErr}>{errors.password}</Text>}
+          {!!(errors.password) && <Text style={s.fieldErr}>{errors.password}</Text>}
 
           <Text style={[s.label, s.labelSpacing]}>Confirm password</Text>
           <View style={[s.inputWrapper, errors.confirm ? s.inputErr : null]}>
@@ -140,7 +140,7 @@ const RegisterScreen = ({ navigation }: Props) => {
               <Text style={s.eyeText}>{showConfirm ? 'Hide' : 'Show'}</Text>
             </TouchableOpacity>
           </View>
-          {errors.confirm && <Text style={s.fieldErr}>{errors.confirm}</Text>}
+          {!!(errors.confirm) && <Text style={s.fieldErr}>{errors.confirm}</Text>}
 
           {/* Submit */}
           <TouchableOpacity

@@ -20,6 +20,22 @@ Ensure you have the following software installed on your machine:
 - Maven: For managing Java project dependencies and builds. 
 - Java JDK:  Required for running and building Java applications.
 
+# Project Frameworks & Testing
+
+The following frameworks have been used:
+- SpringBoot (backend)
+- React Native (frontend)
+
+The following tests have been done:
+- Unit tests via Jest
+Run using the following:
+```bash
+npm test
+```
+- Integration Testing
+- End-to-end via Maestro
+- Performance testing via Flashlight
+
 # Installation Process
 
 ##  1. Clone the Repository
@@ -33,24 +49,27 @@ cd <EcoPath>
 
 ## 2. Dependencies
 
-Install necessary dependencies on ``frontend\my-react-app``
+Install necessary dependencies on ``frontend``
 
-For frontend, run ``npm install``.
+For frontend, run
+```bash
+npm install
+```
 
 For backend, make sure your pom.xml is synced.
 
 ## 3. Running
 
-### Frontend
-
-```
-cd \frontend\my-react-app
-npm run dev
-```
-
 ### Backend
 
 ```
-cd \backend
+cd backend
 mvn spring-boot:run
+```
+
+### Frontend
+
+```
+cd frontend
+npx expo start --clear
 ```
