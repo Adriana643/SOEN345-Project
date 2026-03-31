@@ -21,7 +21,7 @@ type Event = {
 };
 
 const SAMPLE_EVENTS: Event[] = [
-  { id: '1', title: 'ConUHacks 2026', description: 'Come code for 24h only to not submit anything.', date: 'Jan 02, 2026', location: 'Concordia University, SGW', createdByAdmin: false },
+  { id: '1', title: 'ZonUHacks 2026', description: 'Come code for 24h only to not submit anything.', date: 'Jan 02, 2026', location: 'Concordia University, SGW', createdByAdmin: false },
   { id: '2', title: 'Michael Jackson Concert 2026', description: "He's alive guys", date: 'Apr 18, 2026', location: 'Bell Centre, Montreal', createdByAdmin: false },
 ];
 
@@ -31,6 +31,8 @@ const AdminHome = ({ navigation }: Props) => {
   const [events, setEvents] = useState<Event[]>(SAMPLE_EVENTS);
   const [search, setSearch] = useState('');
   const [showMyEvents, setShowMyEvents] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'alphabetical'>('date');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -63,6 +65,29 @@ const AdminHome = ({ navigation }: Props) => {
   const filtered = baseList.filter(e =>
     e.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  const parseDate = (dateStr: string): Date => {
+    // Assuming format like 'Jan 02, 2026'
+    return new Date(dateStr);
+  };
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'date') {
+      return parseDate(b.date).getTime() - parseDate(a.date).getTime(); // recent first
+    } else {
+      return a.title.localeCompare(b.title); // alphabetical
+    }
+  });
+
+  const handleSortSelect = (value: 'date' | 'alphabetical') => {
+    setSortBy(value);
+    setShowSortDropdown(false);
+  };
+
+  const sortOptions = [
+    { label: 'Recent Date', value: 'date' as const },
+    { label: 'Alphabetical', value: 'alphabetical' as const },
+  ];
 
   const handleAdd = () => {
     if (!newTitle.trim() || !newDesc.trim() || !newDate.trim() || !newLocation.trim()) {
@@ -123,8 +148,59 @@ const AdminHome = ({ navigation }: Props) => {
           </TouchableOpacity>
         </View>
 
+        <View style={s.sortWrapper}>
+          <Text style={s.sortLabel}>Sort by:</Text>
+          <View style={s.dropdownContainer}>
+            <TouchableOpacity
+              style={s.dropdownTrigger}
+              onPress={() => setShowSortDropdown(!showSortDropdown)}
+              activeOpacity={0.8}
+            >
+              <Text style={s.dropdownTriggerText}>
+                {sortBy === 'date' ? 'Recent Date' : 'Alphabetical'}
+              </Text>
+              <Ionicons
+                name={showSortDropdown ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#2b7cd3"
+              />
+            </TouchableOpacity>
+            {showSortDropdown && (
+              <>
+                <TouchableOpacity
+                  style={s.dropdownOverlay}
+                  onPress={() => setShowSortDropdown(false)}
+                  activeOpacity={1}
+                />
+                <View style={s.dropdownList}>
+                  {sortOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        s.dropdownItem,
+                        sortBy === option.value && s.dropdownItemSelected,
+                      ]}
+                      onPress={() => handleSortSelect(option.value)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          s.dropdownItemText,
+                          sortBy === option.value && s.dropdownItemTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         <FlatList
-          data={filtered}
+          data={sorted}
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.list}
