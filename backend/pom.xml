@@ -59,7 +59,7 @@
 			<groupId>com.google.firebase</groupId>
 			<artifactId>firebase-admin</artifactId>
 			<version>9.8.0</version>
-    </dependency> 
+    	</dependency>
 		<!-- Web MVC test support (MockMvc, AutoConfigureMockMvc, etc.) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
