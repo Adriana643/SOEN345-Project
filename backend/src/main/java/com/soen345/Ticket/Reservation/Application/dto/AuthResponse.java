@@ -21,14 +21,14 @@ public class AuthResponse {
     private String email;
 
     /** The user's database ID. */
-    private Long id;
+    private String id;
 
     /* ── Constructors ─────────────────────────────────────────── */
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, String role, String email, Long id) {
+    public AuthResponse(String token, String role, String email, String id) {
         this.token = token;
         this.role = role;
         this.email = email;
@@ -61,11 +61,11 @@ public class AuthResponse {
         this.email = email;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 }

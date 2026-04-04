@@ -63,7 +63,7 @@ public class UserController {
      * @return 200 OK with user data, or 404 if not found
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+    public ResponseEntity<?> getUserById(@PathVariable String id) {
         try {
             User user = userService.getUserById(id);
             return ResponseEntity.ok(user);
@@ -90,12 +90,12 @@ public class UserController {
      * @return 200 OK with role information
      */
     @GetMapping("/{id}/role")
-    public ResponseEntity<?> getUserRole(@PathVariable Long id) {
+    public ResponseEntity<?> getUserRole(@PathVariable String id) {
         try {
             User user = userService.getUserById(id);
             return ResponseEntity.ok(Map.of(
                     "id", user.getId(),
-                    "role", user.getRole().name().toLowerCase(),
+                    "role", user.getRoleEnum().name().toLowerCase(),
                     "isAdmin", user.isAdmin(),
                     "isClient", user.isClient()
             ));
