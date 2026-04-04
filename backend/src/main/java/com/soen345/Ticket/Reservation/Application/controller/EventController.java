@@ -27,7 +27,7 @@ public class EventController {
         return userService.getUserIdFromToken(authHeader);
     }
 
-    /* ── POST /api/events ────────────────────────────────────── */
+    /* POST /api/events */
     @PostMapping
     public ResponseEntity<?> createEvent(
             @RequestHeader(value = "Authorization", required = false) String token,
@@ -36,7 +36,7 @@ public class EventController {
         String userId = resolveUserId(token);
 
         if (userId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Missing or invalid session token."));
         }
 
@@ -50,7 +50,7 @@ public class EventController {
         }
     }
 
-    /* ── PUT /api/events/{eventId} ───────────────────────────── */
+    /* PUT /api/events/{eventId} */
     @PutMapping("/{eventId}")
     public ResponseEntity<?> editEvent(
             @RequestHeader(value = "Authorization", required = false) String token,
@@ -60,7 +60,7 @@ public class EventController {
         String userId = resolveUserId(token);
 
         if (userId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Missing or invalid session token."));
         }
 
@@ -74,7 +74,7 @@ public class EventController {
         }
     }
 
-    /* ── PATCH /api/events/{eventId}/cancel ──────────────────── */
+    /* PATCH /api/events/{eventId}/cancel*/
     @PatchMapping("/{eventId}/cancel")
     public ResponseEntity<?> cancelEvent(
             @RequestHeader(value = "Authorization", required = false) String token,
@@ -82,7 +82,7 @@ public class EventController {
 
         String userId = resolveUserId(token);
         if (userId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Missing or invalid session token."));
         }
 
@@ -96,7 +96,7 @@ public class EventController {
         }
     }
 
-    /* ── GET /api/events/search?date=&location=&category= ───── */
+    /* GET /api/events/search?date=&location=&category= */
 
     @GetMapping("/search")
     public ResponseEntity<?> searchEvents(
@@ -108,14 +108,13 @@ public class EventController {
         return ResponseEntity.ok(eventService.searchEvents(date, location, category, title));
     }
 
-    /* ── GET /api/events ─────────────────────────────────────── */
-
+    /* GET /api/events */
     @GetMapping
     public ResponseEntity<?> getAllEvents() {
         return ResponseEntity.ok(eventService.getAllEvents());
     }
 
-    /* ── GET /api/events/{eventId} ───────────────────────────── */
+    /* GET /api/events/{eventId}*/
     @GetMapping("/{eventId}")
     public ResponseEntity<?> getEventById(@PathVariable String eventId) {
         try {

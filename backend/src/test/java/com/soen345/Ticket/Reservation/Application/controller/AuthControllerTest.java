@@ -1,6 +1,5 @@
 package com.soen345.Ticket.Reservation.Application.controller;
 
-import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
 import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,7 +57,7 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(toJson("Alice", "alice@test.com", "pass123", "client")))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.token").exists())
+                    .andExpect(jsonPath("$.token").doesNotExist())
                     .andExpect(jsonPath("$.role").value("client"))
                     .andExpect(jsonPath("$.email").value("alice@test.com"))
                     .andExpect(jsonPath("$.id").exists());
@@ -116,7 +115,7 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(loginJson("client@test.com", "clientpass", "client")))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").exists())
+                    .andExpect(jsonPath("$.token").doesNotExist())
                     .andExpect(jsonPath("$.role").value("client"))
                     .andExpect(jsonPath("$.email").value("client@test.com"));
         }

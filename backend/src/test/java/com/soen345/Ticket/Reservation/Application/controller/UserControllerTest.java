@@ -72,7 +72,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users/{id}/role returns correct role info for a client")
     void getUserRoleClient() throws Exception {
-        Long clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
+        String clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
 
         mockMvc.perform(get("/api/users/" + clientId + "/role"))
                 .andExpect(status().isOk())
@@ -84,7 +84,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users/{id}/role returns correct role info for an admin")
     void getUserRoleAdmin() throws Exception {
-        Long adminId = userRepository.findByEmail("a1@test.com").orElseThrow().getId();
+        String adminId = userRepository.findByEmail("a1@test.com").orElseThrow().getId();
 
         mockMvc.perform(get("/api/users/" + adminId + "/role"))
                 .andExpect(status().isOk())
@@ -104,7 +104,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users/{id} returns user details")
     void getUserById() throws Exception {
-        Long clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
+        String clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
 
         mockMvc.perform(get("/api/users/" + clientId))
                 .andExpect(status().isOk())
