@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Event Model Tests")
-class EventTest {
+class EventModelTest {
 
     private static final String ID          = "1";
     private static final String TITLE       = "Concert";
