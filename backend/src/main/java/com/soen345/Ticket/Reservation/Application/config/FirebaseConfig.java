@@ -2,8 +2,10 @@ package com.soen345.Ticket.Reservation.Application.config;
 
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,8 +16,9 @@ import java.util.Objects;
 
 @Configuration
 public class FirebaseConfig {
+
     @Bean
-    public void initializeFirebase() throws IOException {
+    public Firestore firestore() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {
             ClassLoader classLoader = FirebaseConfig.class.getClassLoader();
             File file = new File(Objects.requireNonNull(
@@ -29,5 +32,6 @@ public class FirebaseConfig {
 
             FirebaseApp.initializeApp(options);
         }
+        return FirestoreClient.getFirestore();
     }
 }
