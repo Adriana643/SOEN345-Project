@@ -1,50 +1,38 @@
 package com.soen345.Ticket.Reservation.Application.controller;
 
-import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.soen345.Ticket.Reservation.Application.dto.AuthResponse;
+import com.soen345.Ticket.Reservation.Application.dto.LoginRequest;
+import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
+import com.soen345.Ticket.Reservation.Application.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
- * Integration tests for {@link AuthController}.
- * <p>
- * Validates registration logic (creating users as client or admin)
- * and login logic (distinguishing user vs admin requests).
- * </p>
+ * Unit tests for {@link AuthController}.
+ * Uses plain Mockito — no Spring context, no Firebase, CI-safe.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
+@DisplayName("AuthController Tests")
 class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Mock
+    private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @BeforeEach
-    void cleanDatabase() {
-        userRepository.deleteAll();
-    }
-
-    private String toJson(String name, String email, String password, String role) {
-        return "{\"name\":\"" + name + "\",\"email\":\"" + email
-                + "\",\"password\":\"" + password + "\",\"role\":\"" + role + "\"}";
-    }
-
-    private String loginJson(String email, String password, String role) {
-        return "{\"email\":\"" + email + "\",\"password\":\"" + password
-                + "\",\"role\":\"" + role + "\"}";
-    }
+    @InjectMocks
+    private AuthController authController;
 
     @Nested
     @DisplayName("POST /api/auth/register")
@@ -52,45 +40,48 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("Should register a client and return 201 with auth response")
-        void registerClient() throws Exception {
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(toJson("Alice", "alice@test.com", "pass123", "client")))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.token").doesNotExist())
-                    .andExpect(jsonPath("$.role").value("client"))
-                    .andExpect(jsonPath("$.email").value("alice@test.com"))
-                    .andExpect(jsonPath("$.id").exists());
+        void registerClient() {
+            when(userService.registerUser(any(RegisterRequest.class)))
+                    .thenReturn(new AuthResponse(null, "client", "alice@test.com", "uid-1"));
+
+            ResponseEntity<?> response = authController.register(
+                    new RegisterRequest("Alice", "alice@test.com", "pass123", "client"));
+            AuthResponse body = (AuthResponse) response.getBody();
+
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
+            assertEquals("client",          body.getRole());
+            assertEquals("alice@test.com",  body.getEmail());
+            assertEquals("uid-1",           body.getId());
+            assertNull(body.getToken());
         }
 
         @Test
         @DisplayName("Should register an admin and return 201 with auth response")
-        void registerAdmin() throws Exception {
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(toJson("Bob", "bob@test.com", "admin123", "admin")))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.role").value("admin"))
-                    .andExpect(jsonPath("$.email").value("bob@test.com"));
+        void registerAdmin() {
+            when(userService.registerUser(any(RegisterRequest.class)))
+                    .thenReturn(new AuthResponse(null, "admin", "bob@test.com", "uid-2"));
+
+            ResponseEntity<?> response = authController.register(
+                    new RegisterRequest("Bob", "bob@test.com", "admin123", "admin"));
+            AuthResponse body = (AuthResponse) response.getBody();
+
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
+            assertEquals("admin",         body.getRole());
+            assertEquals("bob@test.com",  body.getEmail());
         }
 
         @Test
         @DisplayName("Should return 400 when registering with duplicate email")
-        void registerDuplicate() throws Exception {
-            String body = toJson("Alice", "alice@test.com", "pass", "client");
+        void registerDuplicate() {
+            when(userService.registerUser(any(RegisterRequest.class)))
+                    .thenThrow(new IllegalArgumentException("An account with this email already exists."));
 
-            // First registration – should succeed
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(body))
-                    .andExpect(status().isCreated());
+            ResponseEntity<?> response = authController.register(
+                    new RegisterRequest("Alice", "alice@test.com", "pass", "client"));
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
 
-            // Second registration with same email – should fail
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(body))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value("An account with this email already exists."));
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertEquals("An account with this email already exists.", body.get("message"));
         }
     }
 
@@ -98,66 +89,77 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/login")
     class LoginEndpointTests {
 
-        @BeforeEach
-        void seedUsers() throws Exception {
-            mockMvc.perform(post("/api/auth/register")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(toJson("Client", "client@test.com", "clientpass", "client")));
-            mockMvc.perform(post("/api/auth/register")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(toJson("Admin", "admin@test.com", "adminpass", "admin")));
-        }
-
         @Test
         @DisplayName("Should login client with correct credentials")
-        void loginClient() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("client@test.com", "clientpass", "client")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").doesNotExist())
-                    .andExpect(jsonPath("$.role").value("client"))
-                    .andExpect(jsonPath("$.email").value("client@test.com"));
+        void loginClient() {
+            when(userService.loginUser(any(LoginRequest.class)))
+                    .thenReturn(new AuthResponse(null, "client", "client@test.com", "uid-1"));
+
+            ResponseEntity<?> response = authController.login(
+                    new LoginRequest("client@test.com", "clientpass", "client"));
+            AuthResponse body = (AuthResponse) response.getBody();
+
+            assertEquals(HttpStatus.OK,         response.getStatusCode());
+            assertEquals("client",              body.getRole());
+            assertEquals("client@test.com",     body.getEmail());
+            assertNull(body.getToken());
         }
 
         @Test
         @DisplayName("Should login admin with correct credentials")
-        void loginAdmin() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("admin@test.com", "adminpass", "admin")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.role").value("admin"));
+        void loginAdmin() {
+            when(userService.loginUser(any(LoginRequest.class)))
+                    .thenReturn(new AuthResponse(null, "admin", "admin@test.com", "uid-2"));
+
+            ResponseEntity<?> response = authController.login(
+                    new LoginRequest("admin@test.com", "adminpass", "admin"));
+            AuthResponse body = (AuthResponse) response.getBody();
+
+            assertEquals(HttpStatus.OK,  response.getStatusCode());
+            assertEquals("admin",        body.getRole());
         }
 
         @Test
         @DisplayName("Should return 401 for wrong password")
-        void loginWrongPassword() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("client@test.com", "wrong", "client")))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message").value("Invalid email or password."));
+        void loginWrongPassword() {
+            when(userService.loginUser(any(LoginRequest.class)))
+                    .thenThrow(new IllegalArgumentException("Invalid email or password."));
+
+            ResponseEntity<?> response = authController.login(
+                    new LoginRequest("client@test.com", "wrong", "client"));
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            assertEquals("Invalid email or password.", body.get("message"));
         }
 
         @Test
         @DisplayName("Should return 401 for non-existent email")
-        void loginNonExistent() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("noone@test.com", "pass", "client")))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message").value("Invalid email or password."));
+        void loginNonExistent() {
+            when(userService.loginUser(any(LoginRequest.class)))
+                    .thenThrow(new IllegalArgumentException("Invalid email or password."));
+
+            ResponseEntity<?> response = authController.login(
+                    new LoginRequest("noone@test.com", "pass", "client"));
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            assertEquals("Invalid email or password.", body.get("message"));
         }
 
         @Test
         @DisplayName("Should return 401 when client tries to login as admin (role mismatch)")
-        void loginRoleMismatch() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("client@test.com", "clientpass", "admin")))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message").exists());
+        void loginRoleMismatch() {
+            when(userService.loginUser(any(LoginRequest.class)))
+                    .thenThrow(new IllegalArgumentException(
+                            "This account is registered as a client. Please select the correct role."));
+
+            ResponseEntity<?> response = authController.login(
+                    new LoginRequest("client@test.com", "clientpass", "admin"));
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            assertNotNull(body.get("message"));
         }
     }
 }
