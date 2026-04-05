@@ -26,16 +26,19 @@ public class RegisterRequest {
      */
     private String role;
 
+    private String firebaseUid;
+
     /* ── Constructors ─────────────────────────────────────────── */
 
     public RegisterRequest() {
     }
 
-    public RegisterRequest(String name, String email, String password, String role) {
+    public RegisterRequest(String name, String email, String password, String role, String firebaseUid) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.firebaseUid = firebaseUid;
     }
 
     /* ── Getters & Setters ────────────────────────────────────── */
@@ -71,4 +74,8 @@ public class RegisterRequest {
     public void setRole(String role) {
         this.role = role;
     }
+
+    public String getFirebaseUid() {return firebaseUid;}
+
+    public void setFirebaseUid(String firebaseUid) {this.firebaseUid = firebaseUid;}
 }

@@ -47,36 +47,51 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users returns all users")
     void getAllUsers() {
+
+        when(userService.getUserIdFromToken("Bearer valid-token")).thenReturn("a1-id");
+        when(userService.isAdmin("a1-id")).thenReturn(true);
+
         when(userService.getAllUsers()).thenReturn(List.of(client1, client2, admin1));
 
-        ResponseEntity<List<User>> response = userController.getAllUsers();
+        ResponseEntity<?> response = userController.getAllUsers("Bearer valid-token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(3, response.getBody().size());
+        assertEquals(3,((List<?>) response.getBody()).size());
     }
 
     @Test
     @DisplayName("GET /api/users/clients returns only client users")
     void getClients() {
+        when(userService.getUserIdFromToken("Bearer valid-token")).thenReturn("a1-id");
+        when(userService.isAdmin("a1-id")).thenReturn(true);
+
         when(userService.getAllClients()).thenReturn(List.of(client1, client2));
 
-        ResponseEntity<List<User>> response = userController.getClients();
+        ResponseEntity<?> response = userController.getClients("Bearer valid-token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(2, response.getBody().size());
-        assertTrue(response.getBody().stream().allMatch(User::isClient));
+
+        List<User> body = (List<User>) response.getBody();
+        assertEquals(2, body.size());
+        assertTrue(body.stream().allMatch(User::isClient));
     }
 
     @Test
     @DisplayName("GET /api/users/admins returns only admin users")
     void getAdmins() {
+        when(userService.getUserIdFromToken("Bearer valid-token")).thenReturn("a1-id");
+        when(userService.isAdmin("a1-id")).thenReturn(true);
+
         when(userService.getAllAdmins()).thenReturn(List.of(admin1));
 
-        ResponseEntity<List<User>> response = userController.getAdmins();
+        ResponseEntity<?> response = userController.getAdmins("Bearer valid-token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1, response.getBody().size());
-        assertTrue(response.getBody().get(0).isAdmin());
+
+        List<User> body = (List<User>) response.getBody();
+
+        assertEquals(1, body.size());
+        assertTrue(body.get(0).isAdmin());
     }
 
     @Test
@@ -107,6 +122,7 @@ class UserControllerTest {
         assertEquals(true,  body.get("isAdmin"));
         assertEquals(false, body.get("isClient"));
     }
+
 
     @Test
     @DisplayName("GET /api/users/{id} returns 404 for non-existent user")

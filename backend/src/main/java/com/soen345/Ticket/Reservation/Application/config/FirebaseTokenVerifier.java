@@ -1,5 +1,6 @@
 package com.soen345.Ticket.Reservation.Application.config;
 
+import com.google.cloud.firestore.Firestore;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.stereotype.Component;
@@ -7,6 +8,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class FirebaseTokenVerifier {
 
+    private final Firestore firestore;
+
+    public FirebaseTokenVerifier(Firestore firestore) {
+        this.firestore = firestore;
+    }
     /**
      * Verifies a Firebase ID token and returns the decoded token.
      * Returns null if the token is invalid or missing.

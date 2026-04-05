@@ -45,7 +45,7 @@ class AuthControllerTest {
                     .thenReturn(new AuthResponse(null, "client", "alice@test.com", "uid-1"));
 
             ResponseEntity<?> response = authController.register(
-                    new RegisterRequest("Alice", "alice@test.com", "pass123", "client"));
+                    new RegisterRequest("Alice", "alice@test.com", "pass123", "client", "firebase-uid-alice"));
             AuthResponse body = (AuthResponse) response.getBody();
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -62,7 +62,7 @@ class AuthControllerTest {
                     .thenReturn(new AuthResponse(null, "admin", "bob@test.com", "uid-2"));
 
             ResponseEntity<?> response = authController.register(
-                    new RegisterRequest("Bob", "bob@test.com", "admin123", "admin"));
+                    new RegisterRequest("Bob", "bob@test.com", "admin123", "admin","firebase-iud-bob"));
             AuthResponse body = (AuthResponse) response.getBody();
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -77,7 +77,7 @@ class AuthControllerTest {
                     .thenThrow(new IllegalArgumentException("An account with this email already exists."));
 
             ResponseEntity<?> response = authController.register(
-                    new RegisterRequest("Alice", "alice@test.com", "pass", "client"));
+                    new RegisterRequest("Alice", "alice@test.com", "pass", "client", "firebase-iud-alice"));
             Map<String, Object> body = (Map<String, Object>) response.getBody();
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
