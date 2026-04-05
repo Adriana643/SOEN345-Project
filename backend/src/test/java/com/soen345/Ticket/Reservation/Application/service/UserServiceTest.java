@@ -62,7 +62,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Should register a new CLIENT user successfully")
         void registerClientUser() {
-            RegisterRequest request = new RegisterRequest("Alice", "alice@test.com", "pass123", "client");
+            RegisterRequest request = new RegisterRequest("Alice", "alice@test.com", "pass123", "client", "firebase-uid-alice");
 
             AuthResponse response = userService.registerUser(request);
 
@@ -75,7 +75,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Should register a new ADMIN user successfully")
         void registerAdminUser() {
-            RegisterRequest request = new RegisterRequest("Bob", "bob@test.com", "admin123", "admin");
+            RegisterRequest request = new RegisterRequest("Bob", "bob@test.com", "admin123", "admin", "firebase-uid-bob");
 
             AuthResponse response = userService.registerUser(request);
 
@@ -90,7 +90,7 @@ class UserServiceTest {
         @DisplayName("Should persist user with correct role in database")
         void registerPersistsCorrectRole() {
             userService.registerUser(
-                    new RegisterRequest("Charlie", "charlie@test.com", "pass", "admin"));
+                    new RegisterRequest("Charlie", "charlie@test.com", "pass", "admin", "firebase-uid-charlie"));
 
             // Verify save was called with a User that has ADMIN role, correct name and email
             verify(userRepository).save(argThat(user ->
@@ -103,7 +103,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Should default to CLIENT role for unknown role strings")
         void registerDefaultsToClient() {
-            RegisterRequest request = new RegisterRequest("Dana", "dana@test.com", "pass", "unknown");
+            RegisterRequest request = new RegisterRequest("Dana", "dana@test.com", "pass", "unknown", "firebase-uid-dana");
 
             AuthResponse response = userService.registerUser(request);
 
@@ -114,7 +114,7 @@ class UserServiceTest {
         @DisplayName("Should reject duplicate email registration")
         void registerDuplicateEmailThrows() {
             when(userRepository.existsByEmail("eve@test.com")).thenReturn(true);
-            RegisterRequest duplicate = new RegisterRequest("Eve2", "eve@test.com", "pass2", "admin");
+            RegisterRequest duplicate = new RegisterRequest("Eve2", "eve@test.com", "pass2", "admin", "firebase-uid-eve");
 
             IllegalArgumentException ex = assertThrows(
                     IllegalArgumentException.class,
@@ -127,8 +127,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Should allow registering both a client and admin with different emails")
         void registerBothRoles() {
-            userService.registerUser(new RegisterRequest("Client1", "client1@test.com", "p1", "client"));
-            userService.registerUser(new RegisterRequest("Admin1", "admin1@test.com", "p2", "admin"));
+            userService.registerUser(new RegisterRequest("Client1", "client1@test.com", "p1", "client", "firebase-uid-client"));
+            userService.registerUser(new RegisterRequest("Admin1", "admin1@test.com", "p2", "admin", "firebase-uid-admin"));
 
             verify(userRepository).save(argThat(u ->
                     "CLIENT".equals(u.getRole()) && "Client1".equals(u.getName())));

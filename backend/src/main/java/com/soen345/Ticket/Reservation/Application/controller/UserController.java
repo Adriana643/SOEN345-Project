@@ -2,6 +2,7 @@ package com.soen345.Ticket.Reservation.Application.controller;
 
 import com.soen345.Ticket.Reservation.Application.model.User;
 import com.soen345.Ticket.Reservation.Application.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +37,11 @@ public class UserController {
         this.userService = userService;
     }
 
+    /* Auth Helper*/
+    private String resolveUserId(String authHeader) {
+        return userService.getUserIdFromToken(authHeader);
+    }
+
     /* ──────────────────────────────────────────────────────────
      *  GET /api/users
      *  Returns every registered user.
@@ -47,7 +53,19 @@ public class UserController {
      * @return 200 OK with a list of all users
      */
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(
+            @RequestHeader(value = "Authorization", required = false) String token) {
+
+            String userId = resolveUserId(token);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Missing or invalid session token."));
+            }
+            if (!userService.isAdmin(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Admin access required."));
+            }
+
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
@@ -68,7 +86,7 @@ public class UserController {
             User user = userService.getUserById(id);
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", e.getMessage()));
         }
     }
@@ -100,7 +118,7 @@ public class UserController {
                     "isClient", user.isClient()
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", e.getMessage()));
         }
     }
@@ -116,7 +134,19 @@ public class UserController {
      * @return 200 OK with a list of admin users
      */
     @GetMapping("/admins")
-    public ResponseEntity<List<User>> getAdmins() {
+    public ResponseEntity<?> getAdmins(
+            @RequestHeader(value = "Authorization", required = false) String token)
+    {
+        String userId = resolveUserId(token);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Missing or invalid session token."));
+        }
+        if (!userService.isAdmin(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Admin access required."));
+        }
+
         return ResponseEntity.ok(userService.getAllAdmins());
     }
 
@@ -131,7 +161,18 @@ public class UserController {
      * @return 200 OK with a list of client users
      */
     @GetMapping("/clients")
-    public ResponseEntity<List<User>> getClients() {
+    public ResponseEntity<?> getClients(
+            @RequestHeader(value = "Authorization", required = false) String token)
+    {
+        String userId = resolveUserId(token);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Missing or invalid session token."));
+        }
+        if (!userService.isAdmin(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Admin access required."));
+        }
         return ResponseEntity.ok(userService.getAllClients());
     }
 }
