@@ -1,53 +1,27 @@
 package com.soen345.Ticket.Reservation.Application.model;
 
-import jakarta.persistence.*;
-
-/**
- * JPA entity representing a registered user in the ticket reservation system.
- * <p>
- * Each user has a unique email and is assigned a {@link Role} that determines
- * whether they are a regular client or an administrator.  The role drives the
- * logic that distinguishes a client request from an admin request across the
- * application.
- * </p>
- *
- * <p><b>Table:</b> {@code users}</p>
- */
-@Entity
-@Table(name = "users")
 public class User {
 
-    /** Auto-generated primary key. */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    /** Firestore document ID. */
+    private String id;
 
     /** Full display name of the user. */
-    @Column(nullable = false)
     private String name;
 
     /** Unique email address used for authentication. */
-    @Column(nullable = false, unique = true)
     private String email;
 
     /** Hashed password (plain-text storage for demo; production should use BCrypt). */
-    @Column(nullable = false)
     private String password;
 
     /**
-     * The user's role – either {@link Role#CLIENT} or {@link Role#ADMIN}.
-     * <p>
-     * Stored as a string in the database via {@link EnumType#STRING} for
-     * readability and forward-compatibility.
-     * </p>
+     * The user's role -> stored as a String in Firestore
      */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    private String role;
 
     /* ── Constructors ─────────────────────────────────────────── */
 
-    /** Default no-arg constructor required by JPA. */
+    /** Default no-arg constructor*/
     public User() {
     }
 
@@ -59,20 +33,21 @@ public class User {
      * @param password the user's password
      * @param role     the role assigned during registration
      */
-    public User(String name, String email, String password, Role role) {
+    public User(String id, String name, String email, String password, Role role) {
+        this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
-        this.role = role;
+        this.role = role.name();
     }
 
     /* ── Getters & Setters ────────────────────────────────────── */
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -100,12 +75,21 @@ public class User {
         this.password = password;
     }
 
-    public Role getRole() {
+    public String getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(String role) {
         this.role = role;
+    }
+
+    /* Role Helpers */
+    public Role getRoleEnum() {
+        try {
+            return Role.valueOf(this.role);
+        } catch (Exception e) {
+            return Role.CLIENT;
+        }
     }
 
     /**
@@ -114,7 +98,7 @@ public class User {
      * @return {@code true} if the user is an admin, {@code false} otherwise
      */
     public boolean isAdmin() {
-        return this.role == Role.ADMIN;
+        return Role.ADMIN.name().equals(this.role);
     }
 
     /**
@@ -123,6 +107,6 @@ public class User {
      * @return {@code true} if the user is a client, {@code false} otherwise
      */
     public boolean isClient() {
-        return this.role == Role.CLIENT;
+        return Role.CLIENT.name().equals(this.role);
     }
 }

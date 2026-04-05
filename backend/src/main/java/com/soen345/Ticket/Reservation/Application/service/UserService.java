@@ -1,11 +1,15 @@
 package com.soen345.Ticket.Reservation.Application.service;
 
+import com.google.firebase.auth.FirebaseToken;
+import com.soen345.Ticket.Reservation.Application.config.FirebaseTokenVerifier;
 import com.soen345.Ticket.Reservation.Application.dto.AuthResponse;
 import com.soen345.Ticket.Reservation.Application.dto.LoginRequest;
 import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
+
 import com.soen345.Ticket.Reservation.Application.model.Role;
 import com.soen345.Ticket.Reservation.Application.model.User;
 import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,14 +33,17 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FirebaseTokenVerifier firebaseTokenVerifier;
 
     /**
      * Constructor-based dependency injection.
      *
      * @param userRepository the repository used for user persistence
      */
-    public UserService(UserRepository userRepository) {
+
+    public UserService(UserRepository userRepository,  FirebaseTokenVerifier firebaseTokenVerifier) {
         this.userRepository = userRepository;
+        this.firebaseTokenVerifier = firebaseTokenVerifier;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -65,15 +72,15 @@ public class UserService {
         // Determine the role based on the selection from the frontend
         Role role = resolveRole(request.getRole());
 
-        // Create and persist the new user
-        User user = new User(
+        //Assign ID before saving
+        String newId = UUID.randomUUID().toString();
+        User user = new User(newId,
                 request.getName(),
                 request.getEmail(),
                 request.getPassword(),   // NOTE: plain-text for demo; use BCrypt in production
-                role
-        );
-        user = userRepository.save(user);
+                role);
 
+        user = userRepository.save(user);
         // Build and return the auth response
         return buildAuthResponse(user);
     }
@@ -108,15 +115,29 @@ public class UserService {
 
         // Distinguish between user and admin – the requested role must match the stored role
         Role requestedRole = resolveRole(request.getRole());
-        if (user.getRole() != requestedRole) {
+        if (user.getRoleEnum() != requestedRole) {
             throw new IllegalArgumentException(
                     "This account is registered as a "
-                            + user.getRole().name().toLowerCase()
+                            + user.getRoleEnum().name().toLowerCase()
                             + ". Please select the correct role."
             );
         }
 
         return buildAuthResponse(user);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+     *  TOKEN RESOLUTION
+     * ═══════════════════════════════════════════════════════════ */
+
+    /**
+     * Verifies a Firebase ID token from the Authorization header and
+     * returns the corresponding userId (Firebase UID).
+     * Returns null if the token is missing, malformed, or expired.
+     */
+    public String getUserIdFromToken(String authHeader) {
+        FirebaseToken decoded = firebaseTokenVerifier.verify(authHeader);
+        return decoded != null ? decoded.getUid() : null;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -157,7 +178,7 @@ public class UserService {
      * @return the {@link User} entity
      * @throws IllegalArgumentException if no user is found with the given ID
      */
-    public User getUserById(Long id) {
+    public User getUserById(String id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));
     }
@@ -168,7 +189,7 @@ public class UserService {
      * @param userId the user's database ID
      * @return {@code true} if the user is an admin
      */
-    public boolean isAdmin(Long userId) {
+    public boolean isAdmin(String userId) {
         User user = getUserById(userId);
         return user.isAdmin();
     }
@@ -179,7 +200,7 @@ public class UserService {
      * @param userId the user's database ID
      * @return {@code true} if the user is a client
      */
-    public boolean isClient(Long userId) {
+    public boolean isClient(String userId) {
         User user = getUserById(userId);
         return user.isClient();
     }
@@ -210,8 +231,10 @@ public class UserService {
      * @return a populated {@link AuthResponse}
      */
     private AuthResponse buildAuthResponse(User user) {
-        String token = UUID.randomUUID().toString();
-        String roleName = user.getRole().name().toLowerCase();   // "admin" or "client"
-        return new AuthResponse(token, roleName, user.getEmail(), user.getId());
+        return new AuthResponse(
+                null,
+                user.getRoleEnum().name().toLowerCase(),
+                user.getEmail(),
+                user.getId());
     }
 }

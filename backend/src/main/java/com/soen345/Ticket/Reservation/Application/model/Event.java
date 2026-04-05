@@ -11,6 +11,8 @@ public class Event {
 
     public Event() {}
 
+    public static final String STATUS_ACTIVE    = "active";
+    public static final String STATUS_CANCELLED = "cancelled";
 
     public Event(String id, String title, String date, String location,
                  String category, String description) {
@@ -20,7 +22,7 @@ public class Event {
         this.location = location;
         this.category = category;
         this.description = description;
-        this.status = "active";
+        this.status = Event.STATUS_ACTIVE;
     }
 
     public String getId() { return id; }

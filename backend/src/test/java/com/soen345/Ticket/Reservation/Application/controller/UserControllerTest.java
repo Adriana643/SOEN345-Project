@@ -1,115 +1,137 @@
 package com.soen345.Ticket.Reservation.Application.controller;
 
-import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
-import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
+import com.soen345.Ticket.Reservation.Application.model.Role;
+import com.soen345.Ticket.Reservation.Application.model.User;
 import com.soen345.Ticket.Reservation.Application.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * Integration tests for {@link UserController}.
- * <p>
- * Validates that the user query endpoints correctly distinguish
- * between client and admin users.
- * </p>
+ * Unit tests for {@link UserController}.
+ * Uses plain Mockito — no Spring context, no Firebase, CI-safe.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
+@DisplayName("UserController Tests")
 class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
+    @Mock
     private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @InjectMocks
+    private UserController userController;
+
+    private User client1;
+    private User client2;
+    private User admin1;
 
     @BeforeEach
-    void cleanAndSeed() {
-        userRepository.deleteAll();
-        userService.registerUser(new RegisterRequest("Client1", "c1@test.com", "p", "client"));
-        userService.registerUser(new RegisterRequest("Client2", "c2@test.com", "p", "client"));
-        userService.registerUser(new RegisterRequest("Admin1", "a1@test.com", "p", "admin"));
+    void setUp() {
+        client1 = new User("c1-id", "Client1", "c1@test.com", "p", Role.CLIENT);
+        client2 = new User("c2-id", "Client2", "c2@test.com", "p", Role.CLIENT);
+        admin1  = new User("a1-id", "Admin1",  "a1@test.com", "p", Role.ADMIN);
     }
 
     @Test
     @DisplayName("GET /api/users returns all users")
-    void getAllUsers() throws Exception {
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3));
+    void getAllUsers() {
+        when(userService.getAllUsers()).thenReturn(List.of(client1, client2, admin1));
+
+        ResponseEntity<List<User>> response = userController.getAllUsers();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(3, response.getBody().size());
     }
 
     @Test
     @DisplayName("GET /api/users/clients returns only client users")
-    void getClients() throws Exception {
-        mockMvc.perform(get("/api/users/clients"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].role").value("CLIENT"))
-                .andExpect(jsonPath("$[1].role").value("CLIENT"));
+    void getClients() {
+        when(userService.getAllClients()).thenReturn(List.of(client1, client2));
+
+        ResponseEntity<List<User>> response = userController.getClients();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
+        assertTrue(response.getBody().stream().allMatch(User::isClient));
     }
 
     @Test
     @DisplayName("GET /api/users/admins returns only admin users")
-    void getAdmins() throws Exception {
-        mockMvc.perform(get("/api/users/admins"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].role").value("ADMIN"));
+    void getAdmins() {
+        when(userService.getAllAdmins()).thenReturn(List.of(admin1));
+
+        ResponseEntity<List<User>> response = userController.getAdmins();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().size());
+        assertTrue(response.getBody().get(0).isAdmin());
     }
 
     @Test
     @DisplayName("GET /api/users/{id}/role returns correct role info for a client")
-    void getUserRoleClient() throws Exception {
-        Long clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
+    void getUserRoleClient() {
+        when(userService.getUserById("c1-id")).thenReturn(client1);
 
-        mockMvc.perform(get("/api/users/" + clientId + "/role"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("client"))
-                .andExpect(jsonPath("$.isAdmin").value(false))
-                .andExpect(jsonPath("$.isClient").value(true));
+        ResponseEntity<?> response = userController.getUserRole("c1-id");
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("client", body.get("role"));
+        assertEquals(false, body.get("isAdmin"));
+        assertEquals(true,  body.get("isClient"));
+        assertEquals("c1-id", body.get("id"));
     }
 
     @Test
     @DisplayName("GET /api/users/{id}/role returns correct role info for an admin")
-    void getUserRoleAdmin() throws Exception {
-        Long adminId = userRepository.findByEmail("a1@test.com").orElseThrow().getId();
+    void getUserRoleAdmin() {
+        when(userService.getUserById("a1-id")).thenReturn(admin1);
 
-        mockMvc.perform(get("/api/users/" + adminId + "/role"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("admin"))
-                .andExpect(jsonPath("$.isAdmin").value(true))
-                .andExpect(jsonPath("$.isClient").value(false));
+        ResponseEntity<?> response = userController.getUserRole("a1-id");
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("admin", body.get("role"));
+        assertEquals(true,  body.get("isAdmin"));
+        assertEquals(false, body.get("isClient"));
     }
 
     @Test
     @DisplayName("GET /api/users/{id} returns 404 for non-existent user")
-    void getUserByIdNotFound() throws Exception {
-        mockMvc.perform(get("/api/users/99999"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("User not found."));
+    void getUserByIdNotFound() {
+        when(userService.getUserById("99999"))
+                .thenThrow(new IllegalArgumentException("User not found."));
+
+        ResponseEntity<?> response = userController.getUserById("99999");
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("User not found.", body.get("message"));
     }
 
     @Test
     @DisplayName("GET /api/users/{id} returns user details")
-    void getUserById() throws Exception {
-        Long clientId = userRepository.findByEmail("c1@test.com").orElseThrow().getId();
+    void getUserById() {
+        when(userService.getUserById("c1-id")).thenReturn(client1);
 
-        mockMvc.perform(get("/api/users/" + clientId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Client1"))
-                .andExpect(jsonPath("$.email").value("c1@test.com"))
-                .andExpect(jsonPath("$.role").value("CLIENT"));
+        ResponseEntity<?> response = userController.getUserById("c1-id");
+        User body = (User) response.getBody();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Client1",      body.getName());
+        assertEquals("c1@test.com",  body.getEmail());
+        assertEquals("CLIENT",       body.getRole());
     }
 }

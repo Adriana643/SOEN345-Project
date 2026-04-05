@@ -1,40 +1,63 @@
 package com.soen345.Ticket.Reservation.Application.service;
 
+import com.soen345.Ticket.Reservation.Application.config.FirebaseTokenVerifier;
+
 import com.soen345.Ticket.Reservation.Application.dto.AuthResponse;
 import com.soen345.Ticket.Reservation.Application.dto.LoginRequest;
 import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
+
 import com.soen345.Ticket.Reservation.Application.model.Role;
 import com.soen345.Ticket.Reservation.Application.model.User;
 import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
+@DisplayName("UserService Tests")
 class UserServiceTest {
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
+    @Mock
     private UserRepository userRepository;
 
-    @BeforeEach
-    void cleanDatabase() {
-        userRepository.deleteAll();
+    @Mock
+    private FirebaseTokenVerifier firebaseTokenVerifier;
+
+    @InjectMocks
+    private UserService userService;
+
+
+
+    // Helper to build a User with a given role
+    private User buildUser(String id, String name, String email, String password, Role role) {
+        return new User(id, name, email, password, role);
     }
 
+    /** Registration tests **/
     @Nested
     @DisplayName("Registration Logic – creating users based on role")
     class RegistrationTests {
+
+        @BeforeEach
+        void setUp() {
+            // Default: email does not exist yet
+            lenient().when(userRepository.existsByEmail(any())).thenReturn(false);
+            lenient().when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        }
 
         @Test
         @DisplayName("Should register a new CLIENT user successfully")
@@ -43,7 +66,7 @@ class UserServiceTest {
 
             AuthResponse response = userService.registerUser(request);
 
-            assertNotNull(response.getToken(), "Token should be generated");
+            assertNull(response.getToken(), "Token should be null");
             assertEquals("client", response.getRole(), "Role should be 'client'");
             assertEquals("alice@test.com", response.getEmail());
             assertNotNull(response.getId(), "User ID should be assigned");
@@ -56,19 +79,25 @@ class UserServiceTest {
 
             AuthResponse response = userService.registerUser(request);
 
-            assertNotNull(response.getToken());
-            assertEquals("admin", response.getRole(), "Role should be 'admin'");
+            assertNull(response.getToken());
+            assertEquals("admin", response.getRole(), "Role should be a admin");
             assertEquals("bob@test.com", response.getEmail());
+
+
         }
 
         @Test
         @DisplayName("Should persist user with correct role in database")
         void registerPersistsCorrectRole() {
-            userService.registerUser(new RegisterRequest("Charlie", "charlie@test.com", "pass", "admin"));
+            userService.registerUser(
+                    new RegisterRequest("Charlie", "charlie@test.com", "pass", "admin"));
 
-            User savedUser = userRepository.findByEmail("charlie@test.com").orElseThrow();
-            assertEquals(Role.ADMIN, savedUser.getRole());
-            assertEquals("Charlie", savedUser.getName());
+            // Verify save was called with a User that has ADMIN role, correct name and email
+            verify(userRepository).save(argThat(user ->
+                    "ADMIN".equals(user.getRole()) &&
+                            "Charlie".equals(user.getName()) &&
+                            "charlie@test.com".equals(user.getEmail())
+            ));
         }
 
         @Test
@@ -84,8 +113,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Should reject duplicate email registration")
         void registerDuplicateEmailThrows() {
-            userService.registerUser(new RegisterRequest("Eve", "eve@test.com", "pass1", "client"));
-
+            when(userRepository.existsByEmail("eve@test.com")).thenReturn(true);
             RegisterRequest duplicate = new RegisterRequest("Eve2", "eve@test.com", "pass2", "admin");
 
             IllegalArgumentException ex = assertThrows(
@@ -93,6 +121,7 @@ class UserServiceTest {
                     () -> userService.registerUser(duplicate)
             );
             assertTrue(ex.getMessage().contains("already exists"));
+            verify(userRepository, never()).save(any());
         }
 
         @Test
@@ -101,36 +130,40 @@ class UserServiceTest {
             userService.registerUser(new RegisterRequest("Client1", "client1@test.com", "p1", "client"));
             userService.registerUser(new RegisterRequest("Admin1", "admin1@test.com", "p2", "admin"));
 
-            List<User> clients = userRepository.findByRole(Role.CLIENT);
-            List<User> admins = userRepository.findByRole(Role.ADMIN);
-
-            assertEquals(1, clients.size());
-            assertEquals(1, admins.size());
-            assertEquals("Client1", clients.get(0).getName());
-            assertEquals("Admin1", admins.get(0).getName());
+            verify(userRepository).save(argThat(u ->
+                    "CLIENT".equals(u.getRole()) && "Client1".equals(u.getName())));
+            verify(userRepository).save(argThat(u ->
+                    "ADMIN".equals(u.getRole())  && "Admin1".equals(u.getName())));
         }
     }
 
- 
-
+    /* Login tests */
     @Nested
     @DisplayName("User Logic – distinguishing client from admin requests")
     class LoginTests {
 
+        private User clientUser;
+        private User adminUser;
+
         @BeforeEach
-        void seedUsers() {
-            userService.registerUser(new RegisterRequest("Client", "client@test.com", "clientpass", "client"));
-            userService.registerUser(new RegisterRequest("Admin", "admin@test.com", "adminpass", "admin"));
+        void setUp() {
+            // Build users directly — no registration needed, avoids mock setup complexity
+            clientUser = buildUser("client-id", "Client", "client@test.com", "clientpass", Role.CLIENT);
+            adminUser  = buildUser("admin-id",  "Admin",  "admin@test.com",  "adminpass",  Role.ADMIN);
         }
+
 
         @Test
         @DisplayName("Should login client with correct credentials and role")
         void loginClientSuccess() {
+            when(userRepository.findByEmail("client@test.com"))
+                    .thenReturn(Optional.of(clientUser));
+
             LoginRequest request = new LoginRequest("client@test.com", "clientpass", "client");
 
             AuthResponse response = userService.loginUser(request);
 
-            assertNotNull(response.getToken());
+            assertNull(response.getToken());
             assertEquals("client", response.getRole());
             assertEquals("client@test.com", response.getEmail());
         }
@@ -138,11 +171,13 @@ class UserServiceTest {
         @Test
         @DisplayName("Should login admin with correct credentials and role")
         void loginAdminSuccess() {
+            when(userRepository.findByEmail("admin@test.com"))
+                    .thenReturn(Optional.of(adminUser));
             LoginRequest request = new LoginRequest("admin@test.com", "adminpass", "admin");
 
             AuthResponse response = userService.loginUser(request);
 
-            assertNotNull(response.getToken());
+            assertNull(response.getToken());
             assertEquals("admin", response.getRole());
             assertEquals("admin@test.com", response.getEmail());
         }
@@ -150,6 +185,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Should reject login with wrong password")
         void loginWrongPassword() {
+            when(userRepository.findByEmail("client@test.com"))
+                    .thenReturn(Optional.of(clientUser));
             LoginRequest request = new LoginRequest("client@test.com", "wrongpass", "client");
 
             IllegalArgumentException ex = assertThrows(
@@ -162,6 +199,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Should reject login with non-existent email")
         void loginNonExistentEmail() {
+            when(userRepository.findByEmail("nobody@test.com"))
+                    .thenReturn(Optional.empty());
             LoginRequest request = new LoginRequest("nobody@test.com", "pass", "client");
 
             IllegalArgumentException ex = assertThrows(
@@ -174,6 +213,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Should reject client trying to login as admin (role mismatch)")
         void loginRoleMismatchClientAsAdmin() {
+            when(userRepository.findByEmail("client@test.com"))
+                    .thenReturn(Optional.of(clientUser));
             LoginRequest request = new LoginRequest("client@test.com", "clientpass", "admin");
 
             IllegalArgumentException ex = assertThrows(
@@ -186,6 +227,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Should reject admin trying to login as client (role mismatch)")
         void loginRoleMismatchAdminAsClient() {
+            when(userRepository.findByEmail("admin@test.com"))
+                    .thenReturn(Optional.of(adminUser));
             LoginRequest request = new LoginRequest("admin@test.com", "adminpass", "client");
 
             IllegalArgumentException ex = assertThrows(
@@ -201,16 +244,24 @@ class UserServiceTest {
     @DisplayName("Role-based queries")
     class RoleQueryTests {
 
+        private User client1;
+        private User client2;
+        private User admin1;
+
         @BeforeEach
-        void seedUsers() {
-            userService.registerUser(new RegisterRequest("C1", "c1@test.com", "p", "client"));
-            userService.registerUser(new RegisterRequest("C2", "c2@test.com", "p", "client"));
-            userService.registerUser(new RegisterRequest("A1", "a1@test.com", "p", "admin"));
+        void setUp() {
+            // Build users directly — no registration needed
+            client1 = buildUser("c1-id", "C1", "c1@test.com", "p", Role.CLIENT);
+            client2 = buildUser("c2-id", "C2", "c2@test.com", "p", Role.CLIENT);
+            admin1  = buildUser("a1-id", "A1", "a1@test.com", "p", Role.ADMIN);
         }
 
         @Test
         @DisplayName("getAllClients() returns only client users")
         void getAllClients() {
+            when(userRepository.findByRole(Role.CLIENT))
+                    .thenReturn(List.of(client1, client2));
+
             List<User> clients = userService.getAllClients();
             assertEquals(2, clients.size());
             assertTrue(clients.stream().allMatch(User::isClient));
@@ -219,6 +270,9 @@ class UserServiceTest {
         @Test
         @DisplayName("getAllAdmins() returns only admin users")
         void getAllAdmins() {
+            when(userRepository.findByRole(Role.ADMIN))
+                    .thenReturn(List.of(admin1));
+
             List<User> admins = userService.getAllAdmins();
             assertEquals(1, admins.size());
             assertTrue(admins.stream().allMatch(User::isAdmin));
@@ -227,6 +281,8 @@ class UserServiceTest {
         @Test
         @DisplayName("getAllUsers() returns all users regardless of role")
         void getAllUsers() {
+            when(userRepository.findAll())
+                    .thenReturn(List.of(client1, client2, admin1));
             List<User> all = userService.getAllUsers();
             assertEquals(3, all.size());
         }
@@ -234,25 +290,30 @@ class UserServiceTest {
         @Test
         @DisplayName("isAdmin() returns true for admin users")
         void isAdminCheck() {
-            User admin = userRepository.findByEmail("a1@test.com").orElseThrow();
-            assertTrue(userService.isAdmin(admin.getId()));
-            assertFalse(userService.isClient(admin.getId()));
+            when(userRepository.findById("a1-id"))
+                    .thenReturn(Optional.of(admin1));
+
+            assertTrue(userService.isAdmin(admin1.getId()));
+            assertFalse(userService.isClient(admin1.getId()));
         }
 
         @Test
         @DisplayName("isClient() returns true for client users")
         void isClientCheck() {
-            User client = userRepository.findByEmail("c1@test.com").orElseThrow();
-            assertTrue(userService.isClient(client.getId()));
-            assertFalse(userService.isAdmin(client.getId()));
+            when(userRepository.findById("c1-id"))
+                    .thenReturn(Optional.of(client1));;
+            assertTrue(userService.isClient(client1.getId()));
+            assertFalse(userService.isAdmin(client1.getId()));
         }
 
         @Test
         @DisplayName("getUserById() throws for non-existent ID")
         void getUserByIdNotFound() {
+            when(userRepository.findById("bad-id"))
+                    .thenReturn(Optional.empty());
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> userService.getUserById(99999L)
+                    () -> userService.getUserById("bad-id")
             );
         }
     }
