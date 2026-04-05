@@ -13,6 +13,7 @@ import com.soen345.Ticket.Reservation.Application.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service layer containing the core business logic for
@@ -68,10 +69,9 @@ public class UserService {
             throw new IllegalArgumentException("An account with this email already exists.");
         }
 
-        // Firebase UID must be given by the frontend after Firebase sign-up
-        if (request.getFirebaseUid() == null || request.getFirebaseUid().isBlank()) {
-            throw new IllegalArgumentException("Firebase UID is required for registration.");
-        }
+        String newId = (request.getFirebaseUid() != null && !request.getFirebaseUid().isBlank())
+                ? request.getFirebaseUid()
+                : UUID.randomUUID().toString();
 
         // Determine the role based on the selection from the frontend
         Role role = resolveRole(request.getRole());
