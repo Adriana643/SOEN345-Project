@@ -82,7 +82,7 @@ const LoginScreen = ({ navigation }: Props) => {
             <Text style={s.label}>Email</Text>
             <View style={[s.inputWrapper, errors.email ? s.inputErr : null]}>
               <TextInput
-                style={s.input}
+                style={[s.input, { flex: 1 }]}
                 value={email}
                 onChangeText={t => { setEmail(t); setErrors(e => ({ ...e, email: undefined })); }}
                 keyboardType="email-address"
