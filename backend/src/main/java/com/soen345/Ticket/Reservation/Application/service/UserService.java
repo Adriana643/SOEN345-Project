@@ -1,8 +1,10 @@
 package com.soen345.Ticket.Reservation.Application.service;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import com.soen345.Ticket.Reservation.Application.config.FirebaseTokenVerifier;
 import com.soen345.Ticket.Reservation.Application.dto.AuthResponse;
+import com.soen345.Ticket.Reservation.Application.dto.FirebaseAuthRequest;
 import com.soen345.Ticket.Reservation.Application.dto.LoginRequest;
 import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
 
@@ -45,6 +47,31 @@ public class UserService {
         this.userRepository = userRepository;
         this.firebaseTokenVerifier = firebaseTokenVerifier;
     }
+
+    public AuthResponse firebaseAuth(FirebaseAuthRequest request) throws Exception {
+        // verify the token Firebase issued on the frontend
+        FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
+
+        String firebaseUid = decoded.getUid();
+        String email = decoded.getEmail();
+        String phone = (String) decoded.getClaims().get("phone_number");
+        String identifier = email != null ? email : phone;
+
+        Role role = request.getRole().equalsIgnoreCase("admin") ? Role.ADMIN : Role.CLIENT;
+
+        User user = userRepository.findByFirebaseUid(firebaseUid).orElseGet(() -> {
+            User u = new User();
+            u.setFirebaseUid(firebaseUid);
+            u.setEmail(email);
+            u.setPhone(phone);
+            u.setName(request.getName());
+            u.setRole(role.name()); // ← fixed
+            return userRepository.save(u);
+        });
+
+        return new AuthResponse(firebaseUid, user.getRole().toLowerCase(), identifier, user.getId());
+    }
+
 
     /* ═══════════════════════════════════════════════════════════
      *  REGISTRATION LOGIC

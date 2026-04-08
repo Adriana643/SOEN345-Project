@@ -1,6 +1,7 @@
 package com.soen345.Ticket.Reservation.Application.controller;
 
 import com.soen345.Ticket.Reservation.Application.dto.AuthResponse;
+import com.soen345.Ticket.Reservation.Application.dto.FirebaseAuthRequest;
 import com.soen345.Ticket.Reservation.Application.dto.LoginRequest;
 import com.soen345.Ticket.Reservation.Application.dto.RegisterRequest;
 import com.soen345.Ticket.Reservation.Application.service.UserService;
@@ -90,4 +91,17 @@ public class AuthController {
                     .body(Map.of("message", e.getMessage()));
         }
     }
+
+
+    @PostMapping("/firebase")
+    public ResponseEntity<?> firebaseAuth(@RequestBody FirebaseAuthRequest request) {
+        try {
+            AuthResponse response = userService.firebaseAuth(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
 }
