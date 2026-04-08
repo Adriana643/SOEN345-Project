@@ -28,6 +28,7 @@ const SAMPLE_EVENTS: Event[] = [
 const SHEET_HEIGHT = 580;
 
 const AdminHome = ({ navigation }: Props) => {
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>(SAMPLE_EVENTS);
   const [search, setSearch] = useState('');
   const [showMyEvents, setShowMyEvents] = useState(false);
@@ -43,7 +44,21 @@ const AdminHome = ({ navigation }: Props) => {
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const openModal = () => {
+  const openModal = (event?: Event) => {
+    if (event) {
+      setEditingEventId(event.id);
+      setNewTitle(event.title);
+      setNewDesc(event.description);
+      setNewDate(event.date);
+      setNewLocation(event.location);
+    } else {
+      setEditingEventId(null);
+      setNewTitle('');
+      setNewDesc('');
+      setNewDate('');
+      setNewLocation('');
+    }
+
     setModalVisible(true);
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
@@ -58,6 +73,11 @@ const AdminHome = ({ navigation }: Props) => {
     ]).start(() => {
       setModalVisible(false);
       setFormErr('');
+      setEditingEventId(null);
+      setNewTitle('');
+      setNewDesc('');
+      setNewDate('');
+      setNewLocation('');
     });
   };
 
@@ -89,27 +109,40 @@ const AdminHome = ({ navigation }: Props) => {
     { label: 'Alphabetical', value: 'alphabetical' as const },
   ];
 
-  const handleAdd = () => {
+  const handleSaveEvent = () => {
     if (!newTitle.trim() || !newDesc.trim() || !newDate.trim() || !newLocation.trim()) {
       setFormErr('All fields are required.');
       return;
     }
-    setEvents(prev => [
-      {
-        id: Date.now().toString(),
-        title: newTitle.trim(),
-        description: newDesc.trim(),
-        date: newDate.trim(),
-        location: newLocation.trim(),
-        createdByAdmin: true,
-      },
-      ...prev,
-    ]);
-    setNewTitle('');
-    setNewDesc('');
-    setNewDate('');
-    setNewLocation('');
-    setFormErr('');
+
+    if (editingEventId) {
+      setEvents(prev =>
+        prev.map(event =>
+          event.id === editingEventId
+            ? {
+                ...event,
+                title: newTitle.trim(),
+                description: newDesc.trim(),
+                date: newDate.trim(),
+                location: newLocation.trim(),
+              }
+            : event
+        )
+      );
+    } else {
+      setEvents(prev => [
+        {
+          id: Date.now().toString(),
+          title: newTitle.trim(),
+          description: newDesc.trim(),
+          date: newDate.trim(),
+          location: newLocation.trim(),
+          createdByAdmin: true,
+        },
+        ...prev,
+      ]);
+    }
+
     closeModal();
   };
 
@@ -220,9 +253,23 @@ const AdminHome = ({ navigation }: Props) => {
                 <Ionicons name="location-outline" size={12} color="#90b8d8" />
                 <Text style={s.cardLocation}>{item.location}</Text>
               </View>
-              <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(item.id)} activeOpacity={0.8}>
-                <Text style={s.deleteText}>Delete</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                <TouchableOpacity
+                  style={[s.deleteBtn, { flex: 1, marginRight: 5 }]}
+                  onPress={() => openModal(item)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.deleteText}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[s.deleteBtn, { flex: 1, marginLeft: 5 }]}
+                  onPress={() => handleDelete(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.deleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         />
@@ -235,7 +282,9 @@ const AdminHome = ({ navigation }: Props) => {
         </Animated.View>
 
         <Animated.View style={[s.modalCard, { transform: [{ translateY: slideAnim }] }]}>
-          <Text style={s.modalTitle}>New Event</Text>
+          <Text style={s.modalTitle}>
+            {editingEventId ? 'Edit Event' : 'New Event'}
+          </Text>
 
           {formErr ? (
             <View style={s.errorBox}>
@@ -284,8 +333,10 @@ const AdminHome = ({ navigation }: Props) => {
             />
           </View>
 
-          <TouchableOpacity style={s.submitBtn} onPress={handleAdd}>
-            <Text style={s.submitText}>Create Event</Text>
+          <TouchableOpacity style={s.submitBtn} onPress={handleSaveEvent}>
+            <Text style={s.submitText}>
+              {editingEventId ? 'Save Changes' : 'Create Event'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.cancelBtn} onPress={closeModal}>
             <Text style={s.cancelText}>Cancel</Text>
