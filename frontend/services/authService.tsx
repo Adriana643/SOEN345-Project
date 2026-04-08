@@ -3,10 +3,9 @@ import { API_BASE_URL } from '@env';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
   sendEmailVerification,
   User,
-  ApplicationVerifier,
+  signOut
 } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
 
@@ -28,9 +27,7 @@ export type StoredSession = {
   userId: string;
 };
 
-let phoneConfirmationResult: any = null;
-
-// Rejects after ms milliseconds
+// Rejects after ms
 const withTimeout = (promise: Promise<any>, ms: number) =>
   Promise.race([
     promise,
@@ -45,31 +42,45 @@ const syncWithBackend = async (
   name: string,
 ): Promise<AuthResponse> => {
   const idToken = await firebaseUser.getIdToken();
-  const res = await withTimeout(
-    fetch(`${BASE_URL}/api/auth/firebase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken, role, name }),
-    }),
-    10000, // 10 second timeout
-  ) as Response;
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Backend sync failed.');
+  try {
+    const res = await withTimeout(
+      fetch(`${BASE_URL}/api/auth/firebase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, role, name }),
+      }),
+      10000,
+    ) as Response;
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Backend sync failed.');
+    }
+
+    const data = await res.json();
+    const normalizedRole: Role = data.role?.toLowerCase() === 'admin' ? 'admin' : 'client';
+    const response: AuthResponse = {
+      token: data.token,
+      role: normalizedRole,
+      email: data.email ?? '',
+      id: data.id,
+    };
+    await saveSession(response);
+    return response;
+
+  } catch (err: any) {
+    // if backend times out
+    console.warn('Backend sync failed, using Firebase session as fallback:', err.message);
+    const fallback: AuthResponse = {
+      token: idToken,
+      role,
+      email: firebaseUser.email ?? '',
+      id: 0,
+    };
+    await saveSession(fallback);
+    return fallback;
   }
-
-  const data = await res.json();
-  const normalizedRole: Role = data.role?.toLowerCase() === 'admin' ? 'admin' : 'client';
-  const response: AuthResponse = {
-    token: data.token,
-    role: normalizedRole,
-    email: data.email ?? '',
-    id: data.id,
-  };
-
-  await saveSession(response);
-  return response;
 };
 
 export const registerWithEmail = async (
@@ -80,7 +91,7 @@ export const registerWithEmail = async (
 ): Promise<void> => {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   await sendEmailVerification(credential.user);
-  // Sync with backend in background — don't block the user
+  // Sync with backend in background
   syncWithBackend(credential.user, role, name).catch(err =>
     console.warn('Backend sync failed (will retry on login):', err.message),
   );
@@ -89,41 +100,28 @@ export const registerWithEmail = async (
 export const loginWithEmail = async (
   email: string,
   password: string,
-  role: Role,
 ): Promise<AuthResponse> => {
   const credential = await signInWithEmailAndPassword(auth, email, password);
-  return syncWithBackend(credential.user, role, '');
-};
-
-export const sendPhoneOTP = async (
-  phoneNumber: string,
-  recaptchaVerifier: ApplicationVerifier,
-): Promise<void> => {
-  phoneConfirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-};
-
-export const verifyPhoneOTP = async (
-  code: string,
-  name: string,
-  role: Role,
-): Promise<AuthResponse> => {
-  if (!phoneConfirmationResult) throw new Error('No OTP pending. Please request a new code.');
-  const credential = await phoneConfirmationResult.confirm(code);
-  phoneConfirmationResult = null;
-  return syncWithBackend(credential.user, role, name);
+  return syncWithBackend(credential.user, 'client', '');
 };
 
 export const loginUser = async (
   email: string,
   password: string,
-  role: Role,
-): Promise<AuthResponse> => loginWithEmail(email, password, role);
+): Promise<AuthResponse> => loginWithEmail(email, password);
 
 export const logoutUser = async (): Promise<void> => {
-  await SecureStore.deleteItemAsync('authToken');
-  await SecureStore.deleteItemAsync('userRole');
-  await SecureStore.deleteItemAsync('userId');
-  await SecureStore.deleteItemAsync('userEmail');
+  try {
+    await signOut(auth);
+    console.log('firebase signed out');
+    await SecureStore.deleteItemAsync('authToken');
+    await SecureStore.deleteItemAsync('userRole');
+    await SecureStore.deleteItemAsync('userId');
+    await SecureStore.deleteItemAsync('userEmail');
+    console.log('tokens deleted and logout complete');
+  } catch (e) {
+    console.error('Logout error:', e);
+  }
 };
 
 export const getSession = async (): Promise<StoredSession | null> => {

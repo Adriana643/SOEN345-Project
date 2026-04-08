@@ -59,6 +59,18 @@ npm install
 For backend, make sure your pom.xml is synced and run the same command as frontend (``npm install``).
 Additionally, add the **serviceAccountKey.json** file acquired from Firebase in /main/java/resources. That file contains key access to the database and auth system.
 
+#### Important
+In ``/frontend``, there should be a .env file. It's content should be the same as the following, with the appropriate values:
+
+```
+API_BASE_URL=http://xxx.xxx.x.xx:8080 //input your ip address, which can be read via ipconfig on terminal
+
+EXPO_PUBLIC_FIREBASE_API_KEY={value here}
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN={value here}
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=soen-345
+EXPO_PUBLIC_FIREBASE_APP_ID={value here}
+```
+
 ## 3. Running
 
 ### Backend

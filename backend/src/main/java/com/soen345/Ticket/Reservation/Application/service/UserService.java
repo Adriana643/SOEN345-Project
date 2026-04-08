@@ -61,12 +61,16 @@ public class UserService {
 
         User user = userRepository.findByFirebaseUid(firebaseUid).orElseGet(() -> {
             User u = new User();
+            u.setId(firebaseUid);
             u.setFirebaseUid(firebaseUid);
             u.setEmail(email);
             u.setPhone(phone);
             u.setName(request.getName());
-            u.setRole(role.name()); // ← fixed
-            return userRepository.save(u);
+            u.setRole(role.name());
+            System.out.println("Saving on firestore..");
+            User saved = userRepository.save(u);
+            System.out.println("Firestore save completed with " + saved.getId());
+            return saved;
         });
 
         return new AuthResponse(firebaseUid, user.getRole().toLowerCase(), identifier, user.getId());
