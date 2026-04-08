@@ -1,0 +1,18 @@
+appId: host.exp.exponent
+---
+- openLink: exp://10.0.0.131:8081
+
+- assertVisible: "User View"
+- tapOn: "User View"
+
+- assertVisible: "Events"
+- assertVisible: "ZonUHacks 2026"
+
+# join the visible event
+- tapOn: "Join Event"
+
+# switch to joined-events view
+- tapOn: "My Events"
+
+# verify the event is now in My Events
+- assertVisible: "ZonUHacks 2026"

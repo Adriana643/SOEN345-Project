@@ -245,22 +245,43 @@ const AdminHome = ({ navigation }: Props) => {
 
           <Text style={s.label}>Title</Text>
           <View style={s.inputWrapper}>
-            <TextInput style={s.input} value={newTitle} onChangeText={t => { setNewTitle(t); setFormErr(''); }} />
+            <TextInput
+              testID="admin-title-input"
+              style={s.input}
+              value={newTitle}
+              onChangeText={t => { setNewTitle(t); setFormErr(''); }}
+            />
           </View>
 
           <Text style={[s.label, s.labelSpacing]}>Description</Text>
           <View style={[s.inputWrapper, s.inputMultiline]}>
-            <TextInput style={[s.input, { flex: 1 }]} value={newDesc} onChangeText={t => { setNewDesc(t); setFormErr(''); }} multiline />
+            <TextInput
+              testID="admin-description-input"
+              style={[s.input, { flex: 1 }]}
+              value={newDesc}
+              onChangeText={t => { setNewDesc(t); setFormErr(''); }}
+              multiline
+            />
           </View>
 
           <Text style={[s.label, s.labelSpacing]}>Date</Text>
           <View style={s.inputWrapper}>
-            <TextInput style={s.input} value={newDate} onChangeText={t => { setNewDate(t); setFormErr(''); }} />
+            <TextInput
+              testID="admin-date-input"
+              style={s.input}
+              value={newDate}
+              onChangeText={t => { setNewDate(t); setFormErr(''); }}
+            />
           </View>
 
           <Text style={[s.label, s.labelSpacing]}>Location</Text>
           <View style={s.inputWrapper}>
-            <TextInput style={s.input} value={newLocation} onChangeText={t => { setNewLocation(t); setFormErr(''); }} />
+            <TextInput
+              testID="admin-location-input"
+              style={s.input}
+              value={newLocation}
+              onChangeText={t => { setNewLocation(t); setFormErr(''); }}
+            />
           </View>
 
           <TouchableOpacity style={s.submitBtn} onPress={handleAdd}>

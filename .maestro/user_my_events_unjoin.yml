@@ -1,0 +1,23 @@
+appId: host.exp.exponent
+---
+- openLink: exp://10.0.0.131:8081
+
+# enter user mode
+- tapOn: "User View"
+- assertVisible: "Events"
+
+# join one event first
+- tapOn: "Join Event"
+
+# switch to My Events using the toggle bar
+# replace if the toggle text is slightly different in your component
+- tapOn: "My Events"
+
+# joined event should still be visible there
+- assertVisible: "ZonUHacks 2026"
+
+# tapping joined again removes it
+- tapOn: "Joined ✓"
+
+# optional empty-state check
+- assertVisible: "You haven't joined any events yet."
