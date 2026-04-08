@@ -5,6 +5,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+## FIREBASE ##
+backend\src\main\resources\serviceAccountKey.json
 
 ### STS ###
 .apt_generated

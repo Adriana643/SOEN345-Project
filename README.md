@@ -56,7 +56,8 @@ For frontend, run
 npm install
 ```
 
-For backend, make sure your pom.xml is synced.
+For backend, make sure your pom.xml is synced and run the same command as frontend (``npm install``).
+Additionally, add the **serviceAccountKey.json** file acquired from Firebase in /main/java/resources. That file contains key access to the database and auth system.
 
 ## 3. Running
 
