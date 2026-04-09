@@ -19,6 +19,12 @@ public class User {
      */
     private String role;
 
+    // their unique firebase id
+    private String firebaseUid;
+
+    //phone nb of user
+    private String phone;
+
     /* ── Constructors ─────────────────────────────────────────── */
 
     /** Default no-arg constructor*/
@@ -81,6 +87,22 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public void setFirebaseUid(String firebaseUid) {
+        this.firebaseUid = firebaseUid;
+    }
+
+    public String getFirebaseUid() {
+        return firebaseUid;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPhone() {
+        return phone;
     }
 
     /* Role Helpers */

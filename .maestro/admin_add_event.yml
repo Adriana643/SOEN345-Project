@@ -1,7 +1,5 @@
 appId: host.exp.exponent
 ---
-- openLink: exp://10.0.0.131:8081
-
 - assertVisible: "Admin View"
 - tapOn:
     text: "Admin View"

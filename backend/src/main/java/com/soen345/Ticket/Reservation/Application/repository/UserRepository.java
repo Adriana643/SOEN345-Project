@@ -20,6 +20,18 @@ public class UserRepository {
         this.firestore = firestore;
     }
 
+    public Optional<User> findByFirebaseUid(String firebaseUid) {
+    try {
+        QuerySnapshot snapshot = firestore.collection(COLLECTION)
+                .whereEqualTo("firebaseUid", firebaseUid)
+                .get().get();
+        if (snapshot.isEmpty()) return Optional.empty();
+        return Optional.of(snapshot.getDocuments().get(0).toObject(User.class));
+    } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException("Error finding user by Firebase UID", e);
+    }
+}
+
     public User save(User user) {
         try {
             firestore.collection(COLLECTION).document(user.getId()).set(user).get();
