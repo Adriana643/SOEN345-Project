@@ -4,7 +4,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './config/firebaseConfig';
 
+import { Role } from './services/authService';
 import Login from './pages/Login';
 import Register from './pages/Registration';
 import AdminHome from './pages/AdminHome';
@@ -22,23 +25,26 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList>('Login');
-
-  // for token
+  
   useEffect(() => {
-    const checkToken = async () => {
+    const checkSession = async () => {
       try {
         const token = await SecureStore.getItemAsync('authToken');
         const role = await SecureStore.getItemAsync('userRole');
+
         if (token && role) {
           setInitialRoute(role === 'admin' ? 'AdminHome' : 'UserHome');
+        } else {
+          setInitialRoute('Login');
         }
-      } catch(e) {
-        console.error("No tokens could be found.", e);
+      } catch (e) {
+        console.error('Session check failed:', e);
+        setInitialRoute('Login');
       }
       setIsLoading(false);
     };
 
-    checkToken();
+    checkSession();
   }, []);
 
   if (isLoading) {

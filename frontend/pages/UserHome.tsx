@@ -6,6 +6,7 @@ import { RootStackParamList } from '../App';
 import EventToggleBar from '../components/eventToggle';
 import s from './styles/UserHomeStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { logoutUser } from '../services/authService';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'UserHome'>;
@@ -75,7 +76,10 @@ const UserHome = ({ navigation }: Props) => {
 
         <View style={s.header}>
           <Text style={s.title}>Events</Text>
-          <TouchableOpacity onPress={() => navigation.replace('Login')}>
+          <TouchableOpacity onPress={async () => {
+              await logoutUser();
+              navigation.replace('Login');
+            }}>
             <Text style={s.logoutText}>Log out</Text>
           </TouchableOpacity>
         </View>
