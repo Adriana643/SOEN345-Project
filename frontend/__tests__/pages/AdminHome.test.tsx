@@ -127,11 +127,15 @@ describe('AdminHome', () => {
         deleteBtn?.onPress?.();
       }
     );
-    const { getAllByText, queryByText } = render(
+    const { getAllByText } = render(
       <AdminHome navigation={navigation as any} />
     );
+    // Initially 2 delete buttons (2 events)
+    expect(getAllByText('Delete').length).toBe(2);
+    // Delete the first event — the Alert mock fires delete synchronously
     fireEvent.press(getAllByText('Delete')[0]);
-    expect(queryByText('ZonUHacks 2026')).toBeNull();
+    // After deletion only 1 delete button should remain
+    expect(getAllByText('Delete').length).toBe(1);
   });
 
   it('shows empty message when My Events is selected with no admin-created events', () => {

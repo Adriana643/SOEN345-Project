@@ -57,7 +57,13 @@
     "typescript": "~5.9.2"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
+    "moduleNameMapper": {
+      "^expo/src/winter/runtime\\.native$": "<rootDir>/jest.setup.js"
+    }
   },
   "private": true
 }
