@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StatusBar, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StatusBar, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
@@ -7,6 +7,14 @@ import EventToggleBar from '../components/eventToggle';
 import s from './styles/UserHomeStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { logoutUser } from '../services/authService';
+import { auth, db } from '../config/firebaseConfig';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+} from 'firebase/firestore';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'UserHome'>;
@@ -18,24 +26,111 @@ type Event = {
   description: string;
   location: string;
   date: string;
+  createdByAdmin?: boolean;
+  createdBy?: string;
 };
-
-const SAMPLE_EVENTS: Event[] = [
-  { id: '1', title: 'ZonUHacks 2026', description: 'Come code for 24h only to not submit anything.', date: 'Jan 02, 2026', location: 'Concordia University, SGW' },
-  { id: '2', title: 'Michael Jackson Concert 2026', description: "He's alive guys", date: 'Apr 18, 2026', location: 'Bell Centre, Montreal' },
-];
 
 const UserHome = ({ navigation }: Props) => {
   const [search, setSearch] = useState('');
   const [joined, setJoined] = useState<string[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [showMyEvents, setShowMyEvents] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'alphabetical'>('date');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [loadingJoined, setLoadingJoined] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
-  const toggleJoin = (id: string) => {
-    setJoined(prev =>
-      prev.includes(id) ? prev.filter(j => j !== id) : [...prev, id]
+  useEffect(() => {
+    loadEvents();
+    loadJoinedEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      setLoadingEvents(true);
+
+      const snapshot = await getDocs(collection(db, 'events'));
+      const loadedEvents: Event[] = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Event, 'id'>),
+      }));
+
+      setEvents(loadedEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      Alert.alert('Error', 'Could not load events.');
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const loadJoinedEvents = async () => {
+    try {
+      setLoadingJoined(true);
+
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        setJoined([]);
+        return;
+      }
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        setJoined(Array.isArray(data.joinedEventIds) ? data.joinedEventIds : []);
+      } else {
+        await setDoc(
+          userRef,
+          {
+            email: currentUser.email ?? '',
+            joinedEventIds: [],
+          },
+          { merge: true }
+        );
+        setJoined([]);
+      }
+    } catch (error) {
+      console.error('Error loading joined events:', error);
+      Alert.alert('Error', 'Could not load your joined events.');
+    } finally {
+      setLoadingJoined(false);
+    }
+  };
+
+  const saveJoinedEvents = async (updatedJoined: string[]) => {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      throw new Error('No authenticated user found.');
+    }
+
+    const userRef = doc(db, 'users', currentUser.uid);
+
+    await setDoc(
+      userRef,
+      {
+        email: currentUser.email ?? '',
+        joinedEventIds: updatedJoined,
+      },
+      { merge: true }
     );
+  };
+
+  const toggleJoin = async (id: string) => {
+    try {
+      const updatedJoined = joined.includes(id)
+        ? joined.filter(j => j !== id)
+        : [...joined, id];
+
+      setJoined(updatedJoined);
+      await saveJoinedEvents(updatedJoined);
+    } catch (error) {
+      console.error('Error updating joined events:', error);
+      Alert.alert('Error', 'Could not update your reservation.');
+    }
   };
 
   const parseDate = (dateStr: string): Date => {
@@ -44,8 +139,8 @@ const UserHome = ({ navigation }: Props) => {
   };
 
   const baseList = showMyEvents
-    ? SAMPLE_EVENTS.filter(e => joined.includes(e.id))
-    : SAMPLE_EVENTS;
+    ? events.filter(e => joined.includes(e.id))
+    : events;
 
   const filtered = baseList.filter(e =>
     e.title.toLowerCase().includes(search.toLowerCase())
@@ -68,6 +163,8 @@ const UserHome = ({ navigation }: Props) => {
     { label: 'Recent Date', value: 'date' as const },
     { label: 'Alphabetical', value: 'alphabetical' as const },
   ];
+  
+  const isLoading = loadingEvents || loadingJoined;
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -76,10 +173,12 @@ const UserHome = ({ navigation }: Props) => {
 
         <View style={s.header}>
           <Text style={s.title}>Events</Text>
-          <TouchableOpacity onPress={async () => {
+          <TouchableOpacity
+            onPress={async () => {
               await logoutUser();
               navigation.replace('Login');
-            }}>
+            }}
+          >
             <Text style={s.logoutText}>Log out</Text>
           </TouchableOpacity>
         </View>
@@ -155,7 +254,11 @@ const UserHome = ({ navigation }: Props) => {
           contentContainerStyle={s.list}
           ListEmptyComponent={
             <Text style={s.emptyText}>
-              {showMyEvents ? "You haven't joined any events yet." : 'No events found.'}
+              {isLoading
+                ? 'Loading...'
+                : showMyEvents
+                  ? "You haven't joined any events yet."
+                  : 'No events found.'}
             </Text>
           }
           renderItem={({ item }) => (
@@ -172,7 +275,8 @@ const UserHome = ({ navigation }: Props) => {
               <TouchableOpacity
                 style={[s.joinBtn, joined.includes(item.id) && s.joinBtnActive]}
                 onPress={() => toggleJoin(item.id)}
-                activeOpacity={0.8}>
+                activeOpacity={0.8}
+              >
                 <Text style={[s.joinText, joined.includes(item.id) && s.joinTextActive]}>
                   {joined.includes(item.id) ? 'Joined ✓' : 'Join Event'}
                 </Text>

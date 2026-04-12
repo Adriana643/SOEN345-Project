@@ -1,0 +1,40 @@
+appId: host.exp.exponent
+env:
+  USER_EMAIL: ${MAESTRO_USER_EMAIL}
+  USER_PASSWORD: ${MAESTRO_USER_PASSWORD}
+---
+- assertVisible: "Sign In"
+
+- tapOn:
+    id: "login-email-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: ${USER_EMAIL}
+- pasteText
+
+
+- tapOn:
+    id: "login-password-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: ${USER_PASSWORD}
+- pasteText
+
+
+- tapOn:
+    id: "login-submit-button"
+
+- assertVisible: "Events"
+
+
+# Go back and join a real visible event
+- tapOn: "All Events"
+- assertVisible: "Join Event"
+- tapOn: "Join Event"
+
+# Verify joined event appears in My Events
+- tapOn: "My Events"
+
+
+# Unjoin event
+- tapOn: "Joined ✓"
