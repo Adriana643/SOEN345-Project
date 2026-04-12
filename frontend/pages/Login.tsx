@@ -70,6 +70,7 @@ const LoginScreen = ({ navigation }: Props) => {
           <Text style={s.label}>Email</Text>
           <View style={[s.inputWrapper, errors.email ? s.inputErr : null]}>
             <TextInput
+              testID='login-email-input'
               style={[s.input, { flex: 1 }]}
               value={email}
               onChangeText={t => { setEmail(t); setErrors(e => ({ ...e, email: undefined })); }}
@@ -84,6 +85,7 @@ const LoginScreen = ({ navigation }: Props) => {
           <Text style={[s.label, s.labelSpacing]}>Password</Text>
           <View style={[s.inputWrapper, errors.password ? s.inputErr : null]}>
             <TextInput
+              testID="login-password-input"
               style={[s.input, { flex: 1 }]}
               value={password}
               onChangeText={t => { setPassword(t); setErrors(e => ({ ...e, password: undefined })); }}
@@ -97,6 +99,7 @@ const LoginScreen = ({ navigation }: Props) => {
           {!!(errors.password) && <Text style={s.fieldErr}>{errors.password}</Text>}
 
           <TouchableOpacity
+            testID="login-submit-button"
             style={[s.submitBtn, loading && { opacity: 0.55 }]}
             onPress={handleLogin}
             activeOpacity={0.85}

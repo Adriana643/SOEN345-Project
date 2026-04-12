@@ -1,0 +1,90 @@
+appId: host.exp.exponent
+env:
+  ADMIN_EMAIL: ${MAESTRO_ADMIN_EMAIL}
+  ADMIN_PASSWORD: ${MAESTRO_ADMIN_PASSWORD}
+---
+- assertVisible: "Sign In"
+
+- tapOn:
+    id: "login-email-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: ${ADMIN_EMAIL}
+- pasteText
+
+- tapOn:
+    id: "login-password-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: ${ADMIN_PASSWORD}
+- pasteText
+
+- tapOn:
+    id: "login-submit-button"
+
+- assertVisible: "Manage Events"
+
+# Create event
+- tapOn: "Add"
+- assertVisible: "New Event"
+
+- tapOn:
+    id: "admin-title-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: "CRUD Test Event"
+- pasteText
+
+- tapOn:
+    id: "admin-description-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: "Original description"
+- pasteText
+
+
+- tapOn:
+    id: "admin-date-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: "Apr 25, 2026"
+- pasteText
+
+- tapOn:
+    id: "admin-location-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- setClipboard: "Montreal"
+- pasteText
+
+- tapOn: "Create Event"
+- assertVisible: "CRUD Test Event"
+
+
+# Edit event
+- tapOn: "My Events"
+- tapOn: "Edit"
+- assertVisible: "Edit Event"
+
+- tapOn:
+    id: "admin-title-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- eraseText
+- setClipboard: "CRUD Test Event Updated"
+- pasteText
+
+- tapOn:
+    id: "admin-description-input"
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 3000
+- eraseText
+- setClipboard: "Updated description"
+- pasteText
+
+- tapOn: "Save Changes"
+
+# Delete event
+- tapOn: "Delete"
+- assertVisible: "Delete Event"
+- tapOn: "Delete"
