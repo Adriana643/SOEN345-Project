@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 
 jest.mock('expo', () => ({
@@ -85,65 +85,57 @@ jest.mock('../pages/UserHome', () => {
 
 import App from '../App';
 
+const mockGetItemAsync = jest.mocked(SecureStore.getItemAsync);
+
 describe('App', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders without crashing', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    mockGetItemAsync.mockResolvedValue(null);
     const { findByText } = render(<App />);
-    await waitFor(() => {
-      expect(findByText('Route:Login')).toBeTruthy();
-    });
+    expect(await findByText('Route:Login')).toBeTruthy();
   });
 
   it('navigates to Login when no stored session exists', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    mockGetItemAsync.mockResolvedValue(null);
     const { findByText } = render(<App />);
     expect(await findByText('Route:Login')).toBeTruthy();
   });
 
   it('navigates to AdminHome when admin session is stored', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockImplementation(
-      (key: string) => {
-        if (key === 'authToken') return Promise.resolve('token123');
-        if (key === 'userRole') return Promise.resolve('admin');
-        return Promise.resolve(null);
-      }
-    );
+    mockGetItemAsync.mockImplementation((key: string) => {
+      if (key === 'authToken') return Promise.resolve('token123');
+      if (key === 'userRole') return Promise.resolve('admin');
+      return Promise.resolve(null);
+    });
     const { findByText } = render(<App />);
     expect(await findByText('Route:AdminHome')).toBeTruthy();
   });
 
   it('navigates to UserHome when client session is stored', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockImplementation(
-      (key: string) => {
-        if (key === 'authToken') return Promise.resolve('token123');
-        if (key === 'userRole') return Promise.resolve('client');
-        return Promise.resolve(null);
-      }
-    );
+    mockGetItemAsync.mockImplementation((key: string) => {
+      if (key === 'authToken') return Promise.resolve('token123');
+      if (key === 'userRole') return Promise.resolve('client');
+      return Promise.resolve(null);
+    });
     const { findByText } = render(<App />);
     expect(await findByText('Route:UserHome')).toBeTruthy();
   });
 
   it('defaults to Login when session check throws an error', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockRejectedValue(
-      new Error('SecureStore error')
-    );
+    mockGetItemAsync.mockRejectedValue(new Error('SecureStore error'));
     const { findByText } = render(<App />);
     expect(await findByText('Route:Login')).toBeTruthy();
   });
 
   it('renders all four screen definitions', async () => {
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    mockGetItemAsync.mockResolvedValue(null);
     const { findByText } = render(<App />);
-    await waitFor(async () => {
-      expect(await findByText('Screen:Login')).toBeTruthy();
-      expect(await findByText('Screen:Register')).toBeTruthy();
-      expect(await findByText('Screen:AdminHome')).toBeTruthy();
-      expect(await findByText('Screen:UserHome')).toBeTruthy();
-    });
+    expect(await findByText('Screen:Login')).toBeTruthy();
+    expect(await findByText('Screen:Register')).toBeTruthy();
+    expect(await findByText('Screen:AdminHome')).toBeTruthy();
+    expect(await findByText('Screen:UserHome')).toBeTruthy();
   });
 });

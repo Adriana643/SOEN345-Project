@@ -10,6 +10,10 @@ jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({ currentUser: null })),
 }));
 
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(() => ({})),
+}));
+
 describe('firebaseConfig', () => {
   it('exports a default Firebase app instance', () => {
     const config = require('../../config/firebaseConfig');
@@ -47,6 +51,9 @@ describe('firebaseConfig', () => {
     }));
     jest.doMock('firebase/auth', () => ({
       getAuth: jest.fn(() => ({ currentUser: null })),
+    }));
+    jest.doMock('firebase/firestore', () => ({
+      getFirestore: jest.fn(() => ({})),
     }));
 
     const config = require('../../config/firebaseConfig');

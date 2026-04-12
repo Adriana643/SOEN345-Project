@@ -1,6 +1,48 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import UserHome from '../../pages/UserHome';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+
+jest.mock('../../config/firebaseConfig', () => ({
+  __esModule: true,
+  default: {},
+  auth: { currentUser: { uid: 'test-uid', email: 'user@test.com' } },
+  db: {},
+}));
+
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(() => 'events-ref'),
+  doc: jest.fn((_db: any, _col: string, id: string) => ({ _id: id })),
+  getDocs: jest.fn(() =>
+    Promise.resolve({
+      docs: [
+        {
+          id: '1',
+          data: () => ({
+            title: 'ZonUHacks 2026',
+            description: 'A hackathon',
+            date: 'Jan 01, 2026',
+            location: 'Montreal',
+          }),
+        },
+        {
+          id: '2',
+          data: () => ({
+            title: 'Michael Jackson Concert 2026',
+            description: 'A concert',
+            date: 'Feb 01, 2026',
+            location: 'Toronto',
+          }),
+        },
+      ],
+    })
+  ),
+  getDoc: jest.fn(() =>
+    Promise.resolve({
+      exists: () => true,
+      data: () => ({ joinedEventIds: [] }),
+    })
+  ),
+  setDoc: jest.fn(() => Promise.resolve()),
+}));
 
 jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native');
@@ -24,6 +66,8 @@ jest.mock('../../services/authService', () => ({
   logoutUser: () => mockLogoutUser(),
 }));
 
+import UserHome from '../../pages/UserHome';
+
 const createMockNavigation = () => ({
   navigate: jest.fn(),
   replace: jest.fn(),
@@ -46,110 +90,110 @@ describe('UserHome', () => {
 
   beforeEach(() => {
     navigation = createMockNavigation();
-    jest.clearAllMocks();
+    mockLogoutUser.mockReset();
   });
 
+  //ui tests
   it('renders Events title', () => {
-    const { getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
+    const { getByText } = render(<UserHome navigation={navigation as any} />);
     expect(getByText('Events')).toBeTruthy();
   });
 
   it('renders Log out button', () => {
-    const { getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
+    const { getByText } = render(<UserHome navigation={navigation as any} />);
     expect(getByText('Log out')).toBeTruthy();
   });
 
-  it('renders sample events', () => {
-    const { getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    expect(getByText('ZonUHacks 2026')).toBeTruthy();
-    expect(getByText('Michael Jackson Concert 2026')).toBeTruthy();
-  });
-
-  it('filters events by search text', () => {
-    const { getByPlaceholderText, queryByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    fireEvent.changeText(
-      getByPlaceholderText('Search events...'),
-      'ZonU'
-    );
-    expect(queryByText('ZonUHacks 2026')).toBeTruthy();
-    expect(queryByText('Michael Jackson Concert 2026')).toBeNull();
-  });
-
-  it('shows no events found when search has no match', () => {
-    const { getByPlaceholderText, getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    fireEvent.changeText(
-      getByPlaceholderText('Search events...'),
-      'xyznonexistent'
-    );
-    expect(getByText('No events found.')).toBeTruthy();
-  });
-
-  it('toggles join status on an event', () => {
-    const { getAllByText, getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    const joinButtons = getAllByText('Join Event');
-    expect(joinButtons.length).toBe(2);
-    fireEvent.press(joinButtons[0]);
-    expect(getByText('Joined ✓')).toBeTruthy();
-  });
-
-  it('unjoins an event when pressed again', () => {
-    const { getAllByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    // Join the first event
-    fireEvent.press(getAllByText('Join Event')[0]);
-    // Now unjoin it
-    fireEvent.press(getAllByText('Joined ✓')[0]);
-    // Should be back to two "Join Event" buttons
-    expect(getAllByText('Join Event').length).toBe(2);
-  });
-
-  it('shows empty message when My Events is selected with no joined events', () => {
-    const { getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    fireEvent.press(getByText('My Events'));
-    expect(getByText("You haven't joined any events yet.")).toBeTruthy();
-  });
-
-  it('shows only joined events in My Events tab', () => {
-    const { getByText, getAllByText, queryByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
-    // Join the first event
-    fireEvent.press(getAllByText('Join Event')[0]);
-    expect(getByText('Joined ✓')).toBeTruthy();
-    // Switch to My Events — at minimum the empty message should NOT show
-    // since we joined one event
-    fireEvent.press(getByText('My Events'));
-    expect(queryByText("You haven't joined any events yet.")).toBeNull();
-  });
-
   it('renders sort dropdown with default Recent Date option', () => {
-    const { getByText } = render(
-      <UserHome navigation={navigation as any} />
-    );
+    const { getByText } = render(<UserHome navigation={navigation as any} />);
     expect(getByText('Sort by:')).toBeTruthy();
     expect(getByText('Recent Date')).toBeTruthy();
   });
 
-  it('calls logoutUser and navigates to Login on logout', async () => {
-    mockLogoutUser.mockResolvedValue(undefined);
-    const { getByText } = render(
+  // everything async storage related
+  it('renders sample events', async () => {
+    const { findByText } = render(<UserHome navigation={navigation as any} />);
+    expect(await findByText('ZonUHacks 2026')).toBeTruthy();
+    expect(await findByText('Michael Jackson Concert 2026')).toBeTruthy();
+  });
+
+  it('filters events by search text', async () => {
+    const { findByPlaceholderText, findByText, queryByText } = render(
       <UserHome navigation={navigation as any} />
     );
+    await findByText('ZonUHacks 2026'); // wait for initial load
+    fireEvent.changeText(
+      await findByPlaceholderText('Search events...'),
+      'ZonU'
+    );
+    expect(await findByText('ZonUHacks 2026')).toBeTruthy();
+    expect(queryByText('Michael Jackson Concert 2026')).toBeNull();
+  });
+
+  it('shows no events found when search has no match', async () => {
+    const { findByPlaceholderText, findByText } = render(
+      <UserHome navigation={navigation as any} />
+    );
+    await findByText('ZonUHacks 2026');
+    fireEvent.changeText(
+      await findByPlaceholderText('Search events...'),
+      'xyznonexistent'
+    );
+    expect(await findByText('No events found.')).toBeTruthy();
+  });
+
+  it('toggles join status on an event', async () => {
+    const { findAllByText, getByText } = render(
+      <UserHome navigation={navigation as any} />
+    );
+    const joinButtons = await findAllByText('Join Event');
+    expect(joinButtons.length).toBe(2);
+    await act(async () => {
+      fireEvent.press(joinButtons[0]);
+    });
+    expect(getByText('Joined ✓')).toBeTruthy();
+  });
+
+  it('unjoins an event when pressed again', async () => {
+    const { findAllByText, getAllByText } = render(
+      <UserHome navigation={navigation as any} />
+    );
+    await findAllByText('Join Event'); // wait for load
+    await act(async () => {
+      fireEvent.press(getAllByText('Join Event')[0]);
+    });
+    await act(async () => {
+      fireEvent.press(getAllByText('Joined ✓')[0]);
+    });
+    expect(getAllByText('Join Event').length).toBe(2);
+  });
+
+  it('shows empty message when My Events is selected with no joined events', async () => {
+    const { findByText, getByText } = render(
+      <UserHome navigation={navigation as any} />
+    );
+    await findByText('ZonUHacks 2026'); // wait for both loads to complete
+    fireEvent.press(getByText('My Events'));
+    expect(getByText("You haven't joined any events yet.")).toBeTruthy();
+  });
+
+  it('shows only joined events in My Events tab', async () => {
+    const { findAllByText, getAllByText, getByText, queryByText } = render(
+      <UserHome navigation={navigation as any} />
+    );
+    await findAllByText('Join Event'); // wait for load
+    await act(async () => {
+      fireEvent.press(getAllByText('Join Event')[0]);
+    });
+    expect(getByText('Joined ✓')).toBeTruthy();
+    fireEvent.press(getByText('My Events'));
+    expect(queryByText("You haven't joined any events yet.")).toBeNull();
+  });
+
+
+  it('calls logoutUser and navigates to Login on logout', async () => {
+    mockLogoutUser.mockResolvedValue(undefined);
+    const { getByText } = render(<UserHome navigation={navigation as any} />);
     fireEvent.press(getByText('Log out'));
     await waitFor(() => {
       expect(mockLogoutUser).toHaveBeenCalled();
