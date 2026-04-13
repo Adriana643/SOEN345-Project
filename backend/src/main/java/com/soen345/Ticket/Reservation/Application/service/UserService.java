@@ -95,15 +95,13 @@ public class UserService {
      * @throws IllegalArgumentException if the email is already registered
      */
     public AuthResponse registerUser(RegisterRequest request) {
+        if (request.getFirebaseUid() == null || request.getFirebaseUid().isBlank()) {
+            throw new IllegalArgumentException("Firebase UID is required for registration.");
+        }
         // Prevent duplicate accounts
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("An account with this email already exists.");
         }
-
-        String newId = (request.getFirebaseUid() != null && !request.getFirebaseUid().isBlank())
-                ? request.getFirebaseUid()
-                : UUID.randomUUID().toString();
-
         // Determine the role based on the selection from the frontend
         Role role = resolveRole(request.getRole());
 

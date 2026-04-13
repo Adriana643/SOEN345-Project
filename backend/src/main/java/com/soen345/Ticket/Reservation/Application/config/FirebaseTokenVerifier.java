@@ -8,11 +8,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class FirebaseTokenVerifier {
 
-    private final Firestore firestore;
-
-    public FirebaseTokenVerifier(Firestore firestore) {
-        this.firestore = firestore;
-    }
     /**
      * Verifies a Firebase ID token and returns the decoded token.
      * Returns null if the token is invalid or missing.

@@ -97,6 +97,14 @@ public class UserRepository {
         }
     }
 
+    public void deleteById(String id) {
+        try {
+            firestore.collection(COLLECTION).document(id).delete().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error deleting user: " + id, e);
+        }
+    }
+
     public void deleteAll() {
         try {
             for (DocumentReference doc : firestore.collection(COLLECTION).listDocuments()) {
