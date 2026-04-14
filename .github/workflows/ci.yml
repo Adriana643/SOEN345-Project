@@ -60,12 +60,12 @@ jobs:
         working-directory: frontend
 
       - name: Run Jest tests
-        run: npm test -- --watchAll=false --passWithNoTests
+        run: npm test -- --watchAll=false --passWithNoTests --coverage
         working-directory: frontend
 
-      # - name: Upload Jest Results
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: jest-reports
-      #     path: frontend/coverage/
+      - name: Upload Jest Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-reports
+          path: frontend/coverage/
